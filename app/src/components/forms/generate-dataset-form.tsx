@@ -17,14 +17,14 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from 'sonner';
 import { useAccount } from 'wagmi';
-import { Loader2, Database, Bot, ArrowRight, CheckCircle, AlertCircle, Clock, Upload, Zap } from 'lucide-react';
-import { DATASET_TEMPLATES, DatasetTemplate, Model, GenerationResult, getModels, MODEL_PROVIDERS, GenerationConfig } from '@/lib/models';
-import { generateSyntheticDataset } from '@/lib/generation';
-import { TemplateList } from '@/components/ui/template-card';
+import { Loader2, Database, Bot, ArrowRight, CheckCircle, AlertCircle, Clock, Upload, Zap, Eye, Sparkles } from 'lucide-react';
+import { Model, getModels, MODEL_PROVIDERS } from '@/lib/models';
+import { DatasetGenerationService } from '@/lib/synthetic-generation-service';
+import { DATASET_SCHEMAS, getSchemaById, GENERATION_MODES } from '@/lib/schemas';
 import { useDataUpload } from '@/hooks/storage/useDataUpload';
 import { useDatasetPublisher } from '@/hooks/blockchain/useDatasetPublisher';
 
-// Define the form schema
+// Enhanced form schema for new generation system
 const formSchema = z.object({
   name: z.string().min(3, {
     message: "Dataset name must be at least 3 characters",
@@ -39,23 +39,35 @@ const formSchema = z.object({
     required_error: "You must select a visibility option",
   }),
   allowNFTAccess: z.boolean().default(false),
+  
+  // Generation mode selection
+  generationMode: z.enum(["synthetic", "augment"], {
+    required_error: "You must select a generation mode",
+  }),
+  
+  // Schema selection for synthetic generation
+  schemaId: z.string().optional(),
+  
+  // AI Model configuration
+  aiProvider: z.string().min(1, {
+    message: "AI provider is required",
+  }),
   modelId: z.string().min(1, {
     message: "Model is required",
   }),
-  datasetPath: z.string().min(1, {
-    message: "Dataset path is required",
-  }),
+  
+  // Synthetic generation parameters
+  sampleCount: z.number().min(10).max(10000).default(100),
+  customPrompt: z.string().optional(),
+  
+  // HuggingFace augmentation parameters (for augment mode)
+  datasetPath: z.string().optional(),
   datasetConfig: z.string().default("default"),
   datasetSplit: z.string().default("train"),
-  inputFeature: z.string().min(1, {
-    message: "Input feature is required",
-  }),
-  prompt: z.string().min(10, {
-    message: "Prompt template must be at least 10 characters",
-  }),
-  maxTokens: z.number().min(1000, {
-    message: "Max tokens must be at least 1000",
-  }),
+  inputFeature: z.string().optional(),
+  augmentPrompt: z.string().optional(),
+  
+  maxTokens: z.number().min(100).max(8000).default(1000),
 });
 
 type ProcessStep = 'idle' | 'generating' | 'uploading' | 'publishing' | 'completed' | 'error';
@@ -67,58 +79,47 @@ interface StepIndicatorProps {
 
 function StepIndicator({ currentStep, error }: StepIndicatorProps) {
   const steps = [
-    { id: 'generating', label: 'Generate Data', icon: Bot },
-    { id: 'uploading', label: 'Upload to Filecoin', icon: Upload },
-    { id: 'publishing', label: 'Publish On-Chain', icon: Zap },
+    { id: 'generating', label: 'Generating Dataset', icon: Sparkles },
+    { id: 'uploading', label: 'Uploading to IPFS', icon: Upload },
+    { id: 'publishing', label: 'Publishing On-Chain', icon: Database },
   ];
 
   const getStepStatus = (stepId: string) => {
+    if (error && currentStep === stepId) return 'error';
+    if (currentStep === stepId) return 'active';
+    
     const stepIndex = steps.findIndex(s => s.id === stepId);
     const currentIndex = steps.findIndex(s => s.id === currentStep);
     
-    if (currentStep === 'error') return 'error';
     if (currentStep === 'completed') return 'completed';
     if (stepIndex < currentIndex) return 'completed';
-    if (stepIndex === currentIndex) return 'active';
     return 'pending';
   };
 
   return (
-    <div className="flex items-center justify-between mb-6 p-4 bg-muted/50 rounded-lg">
+    <div className="flex items-center justify-center space-x-4 py-6">
       {steps.map((step, index) => {
         const status = getStepStatus(step.id);
         const Icon = step.icon;
         
         return (
           <div key={step.id} className="flex items-center">
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-              status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
-              status === 'active' ? 'bg-blue-500 border-blue-500 text-white animate-pulse' :
-              status === 'error' ? 'bg-red-500 border-red-500 text-white' :
-              'bg-muted border-muted-foreground/30 text-muted-foreground'
+            <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              status === 'completed' ? 'bg-green-100 text-green-700' :
+              status === 'active' ? 'bg-blue-100 text-blue-700' :
+              status === 'error' ? 'bg-red-100 text-red-700' :
+              'bg-gray-100 text-gray-500'
             }`}>
               {status === 'completed' ? (
-                <CheckCircle className="w-5 h-5" />
+                <CheckCircle className="w-4 h-4" />
               ) : status === 'error' ? (
-                <AlertCircle className="w-5 h-5" />
+                <AlertCircle className="w-4 h-4" />
               ) : status === 'active' ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4" />
               )}
-            </div>
-            <div className="ml-3">
-              <p className={`text-sm font-medium ${
-                status === 'active' ? 'text-blue-600' :
-                status === 'completed' ? 'text-green-600' :
-                status === 'error' ? 'text-red-600' :
-                'text-muted-foreground'
-              }`}>
-                {step.label}
-              </p>
-              {status === 'active' && (
-                <p className="text-xs text-muted-foreground">In progress...</p>
-              )}
+              <span className="text-sm font-medium">{step.label}</span>
             </div>
             {index < steps.length - 1 && (
               <ArrowRight className={`w-4 h-4 mx-4 ${
@@ -144,18 +145,18 @@ export function GenerateDatasetForm() {
   const { mutateAsync: uploadData, isPending: isUploading } = uploadDataMutation;
   const { publish, isPublishing } = useDatasetPublisher();
 
-  const [activeTab, setActiveTab] = useState<string>("template");
+  const [activeTab, setActiveTab] = useState<string>("configure");
   const [models, setModels] = useState<Model[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [generatedData, setGeneratedData] = useState<GenerationResult[] | null>(null);
+  const [generatedData, setGeneratedData] = useState<any[] | null>(null);
+  const [previewData, setPreviewData] = useState<any[] | null>(null);
   const [isPublished, setIsPublished] = useState(false);
   const [currentStep, setCurrentStep] = useState<ProcessStep>('idle');
   const [processError, setProcessError] = useState<string | null>(null);
 
-  // Memoize resetUpload to stabilize useEffect dependencies
   const resetUpload = useCallback(() => {
     handleReset();
   }, [handleReset]);
@@ -168,551 +169,715 @@ export function GenerateDatasetForm() {
       visibility: "public",
       price: "0",
       allowNFTAccess: false,
+      generationMode: "synthetic",
+      aiProvider: "openai",
       modelId: "",
-      prompt: "",
-      maxTokens: 10000,
-      inputFeature: "",
-      datasetPath: "",
-      datasetConfig: "",
-      datasetSplit: "",
+      sampleCount: 100,
+      maxTokens: 1000,
+      datasetConfig: "default",
+      datasetSplit: "train",
     },
   });
 
+  const watchGenerationMode = form.watch("generationMode");
+  const watchAiProvider = form.watch("aiProvider");
+  const watchSchemaId = form.watch("schemaId");
+
   useEffect(() => {
     loadModels();
-  }, []);
+  }, [watchAiProvider]);
 
-  // Effect to upload data after it has been generated
   useEffect(() => {
     if (generatedData && !isUploading && !uploadedInfo && currentStep === 'generating') {
       setCurrentStep('uploading');
-      const toastId = toast.loading("Uploading dataset to Filecoin...");
-      uploadData(generatedData, {
-        onSuccess: () => {
-          toast.success("Dataset uploaded successfully!", { id: toastId });
-        },
-        onError: (error) => {
-          setCurrentStep('error');
-          setProcessError(`Upload failed: ${error.message}`);
-          toast.error(`Upload failed: ${error.message}`, { id: toastId });
-        },
-      });
+      uploadGeneratedData();
     }
-  }, [generatedData, isUploading, uploadedInfo, uploadData, currentStep]);
+  }, [generatedData, isUploading, uploadedInfo, currentStep]);
 
-  // Effect to publish dataset on-chain after it has been uploaded
   useEffect(() => {
-    if (uploadedInfo?.commp && !isPublishing && !isPublished && generatedData && currentStep === 'uploading') {
-      if (!address) {
-        setCurrentStep('error');
-        setProcessError("Wallet not connected. Cannot publish dataset.");
-        toast.error("Wallet not connected. Cannot publish dataset.");
-        return;
-      }
-      
+    if (uploadedInfo && !isPublishing && currentStep === 'uploading') {
       setCurrentStep('publishing');
-      const formValues = form.getValues();
-      console.log('Form values being passed to publish:', formValues);
-      console.log('Generated data sample:', generatedData?.slice(0, 2));
-      console.log('Upload info:', uploadedInfo);
-      
-      publish({
-        ...formValues,
-        generatedData,
-        commp: uploadedInfo.commp,
-        onSuccess: () => {
-          setCurrentStep('completed');
-          toast.success("Dataset published successfully!");
-          setIsPublished(true);
-          form.reset();
-          setGeneratedData(null);
-          resetUpload();
-          // Reset to idle after a delay
-          setTimeout(() => {
-            setCurrentStep('idle');
-            setIsPublished(false);
-          }, 3000);
-        },
-      }).catch((error: any) => {
-        setCurrentStep('error');
-        setProcessError(`Publishing failed: ${error.message}`);
-        toast.error(`Publishing failed: ${error.message}`);
-      });
+      publishDataset();
     }
-  }, [uploadedInfo, isPublishing, isPublished, generatedData, publish, form, address, resetUpload, currentStep]);
+  }, [uploadedInfo, isPublishing, currentStep]);
 
-  async function loadModels() {
+  const loadModels = async () => {
+    if (!watchAiProvider) return;
+    
     setModelsLoading(true);
     setModelsError(null);
     try {
-      const allModelsPromises = MODEL_PROVIDERS.map(provider => getModels(provider.id));
-      const modelsByProvider = await Promise.all(allModelsPromises);
-      const allModels = modelsByProvider.flat();
-      setModels(allModels);
-      toast.success("Models loaded successfully!");
-    } catch (error: any) {
-      console.error("Failed to load models:", error);
-      setModelsError(error.message || "Failed to load models.");
-      toast.error(error.message || "Failed to load models.");
+      const modelList = await getModels(watchAiProvider);
+      setModels(modelList);
+      if (modelList.length > 0 && !form.getValues("modelId")) {
+        form.setValue("modelId", modelList[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to load models:', error);
+      setModelsError('Failed to load models');
+      toast.error('Failed to load models');
     } finally {
       setModelsLoading(false);
     }
-  }
+  };
+
+  const handlePreview = async () => {
+    const values = form.getValues();
+    
+    try {
+      const generationRequest = {
+        mode: values.generationMode,
+        schemaId: values.schemaId,
+        sampleCount: Math.min(values.sampleCount, 5), // Limit preview to 5 rows
+        customPrompt: values.customPrompt,
+        huggingFaceConfig: values.generationMode === 'augment' ? {
+          datasetPath: values.datasetPath || '',
+          config: values.datasetConfig,
+          split: values.datasetSplit,
+          inputFeature: values.inputFeature || '',
+        } : undefined,
+      };
+
+      const preview = await DatasetGenerationService.previewDataset(
+        generationRequest,
+        values.aiProvider,
+        values.modelId
+      );
+      
+      setPreviewData(preview.data);
+      toast.success('Preview generated successfully!');
+    } catch (error) {
+      console.error('Preview failed:', error);
+      toast.error('Failed to generate preview');
+    }
+  };
+
+  const uploadGeneratedData = async () => {
+    if (!generatedData) return;
+
+    try {
+      const jsonData = JSON.stringify(generatedData, null, 2);
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const file = new File([blob], `${form.getValues("name")}.json`, { type: 'application/json' });
+      
+      await uploadData(file);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setProcessError('Failed to upload dataset');
+      setCurrentStep('error');
+      toast.error('Failed to upload dataset');
+    }
+  };
+
+  const publishDataset = async () => {
+    if (!uploadedInfo || !generatedData) return;
+
+    try {
+      const values = form.getValues();
+      await publish({
+        name: values.name,
+        description: values.description,
+        price: values.price,
+        visibility: values.visibility,
+        modelId: values.modelId,
+        generatedData: [{ data: generatedData, metadata: {} }] as any,
+        commp: uploadedInfo.commp || '',
+        onSuccess: () => {
+          setCurrentStep('completed');
+          toast.success('Dataset published successfully!');
+        }
+      });
+    } catch (error) {
+      console.error('Publishing failed:', error);
+      setProcessError('Failed to publish dataset');
+      setCurrentStep('error');
+      toast.error('Failed to publish dataset');
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!isConnected || !address) {
-      toast.error("Please connect your wallet to generate a dataset.");
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
       return;
     }
 
+    setIsGenerating(true);
     setCurrentStep('generating');
     setProcessError(null);
-    const toastId = toast.loading("Starting dataset generation...");
-    setIsGenerating(true);
-    setGeneratedData(null);
-    setGenerationProgress(0);
-
-    const generationConfig: GenerationConfig = {
-      model: values.modelId,
-      prompt: values.prompt,
-      inputFeature: values.inputFeature,
-      maxTokens: values.maxTokens,
-      temperature: 0.7, // Default temperature
-    };
+    resetUpload();
 
     try {
-      const { results } = await generateSyntheticDataset(
-        values.datasetPath,
-        values.datasetConfig,
-        values.datasetSplit,
-        generationConfig
+      const generationRequest = {
+        mode: values.generationMode,
+        schemaId: values.schemaId,
+        sampleCount: values.sampleCount,
+        customPrompt: values.customPrompt,
+        huggingFaceConfig: values.generationMode === 'augment' ? {
+          datasetPath: values.datasetPath || '',
+          config: values.datasetConfig,
+          split: values.datasetSplit,
+          inputFeature: values.inputFeature || '',
+        } : undefined,
+      };
+
+      const result = await DatasetGenerationService.generateDataset(
+        generationRequest,
+        values.aiProvider,
+        values.modelId,
+        (progress) => {
+          setGenerationProgress(progress);
+        }
       );
-      setGeneratedData(results);
-      setGenerationProgress(100);
-      toast.success("Dataset generated successfully!", { id: toastId });
-    } catch (error: any) {
-      console.error("Generation failed:", error);
+
+      setGeneratedData(result.data);
+      toast.success(`Generated ${result.data.length} rows successfully!`);
+    } catch (error) {
+      console.error('Generation failed:', error);
+      setProcessError('Failed to generate dataset');
       setCurrentStep('error');
-      setProcessError(`Generation failed: ${error.message}`);
-      toast.error("Dataset generation failed. Please check the console for details.", { id: toastId });
+      toast.error('Failed to generate dataset');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleTemplateSelect = (template: DatasetTemplate) => {
-    form.reset({
-      ...form.getValues(), // keep existing values
-      prompt: template.prompt,
-      inputFeature: template.inputFeature,
-      maxTokens: template.maxTokens,
-      datasetPath: template.datasetSource.path,
-      datasetConfig: template.datasetSource.config,
-      datasetSplit: template.datasetSource.split,
-      modelId: template.recommendedModel,
-      price: String(template.price),
-      name: template.name,
-      description: template.description,
-    });
-    setActiveTab("customize");
-    toast.info(`Template "${template.name}" selected. Configure your model.`);
-  };
-
-  const resetProcess = () => {
-    setCurrentStep('idle');
-    setProcessError(null);
-    setGeneratedData(null);
-    setIsPublished(false);
-    resetUpload();
-  };
-
-  const isProcessing = currentStep !== 'idle' && currentStep !== 'completed' && currentStep !== 'error';
+  const isProcessing = isGenerating || isUploading || isPublishing;
+  const selectedSchema = watchSchemaId ? getSchemaById(watchSchemaId) : null;
 
   return (
-    <div className="space-y-8">
-      {/* Connection Status */}
-      {!isConnected && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Please connect your wallet to generate and publish datasets.
-          </AlertDescription>
-        </Alert>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold">Generate Synthetic Dataset</h1>
+        <p className="text-muted-foreground">
+          Create AI-powered synthetic datasets or augment existing HuggingFace datasets
+        </p>
+      </div>
+
+      {(currentStep !== 'idle' && currentStep !== 'completed') && (
+        <Card>
+          <CardContent className="pt-6">
+            <StepIndicator currentStep={currentStep} error={processError} />
+            {isGenerating && (
+              <div className="mt-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Generating dataset...</span>
+                  <span>{generationProgress}%</span>
+                </div>
+                <Progress value={generationProgress} className="w-full" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Process Steps Indicator */}
-      {(isProcessing || currentStep === 'completed' || currentStep === 'error') && (
-        <StepIndicator currentStep={currentStep} error={processError} />
-      )}
-
-      {/* Error Display */}
-      {processError && currentStep === 'error' && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>{processError}</span>
-            <Button variant="outline" size="sm" onClick={resetProcess}>
-              Try Again
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Success Display */}
       {currentStep === 'completed' && (
-        <Alert className="border-green-200 bg-green-50 text-green-800">
-          <CheckCircle className="h-4 w-4 text-green-600" />
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
           <AlertDescription>
-            Dataset successfully generated and published! Check your profile to view it.
+            Dataset generated and published successfully! You can now view it in your dashboard.
           </AlertDescription>
         </Alert>
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="template" disabled={isProcessing}>
-            <Database className="w-4 h-4 mr-2" />
-            Choose Template
-          </TabsTrigger>
-          <TabsTrigger value="customize" disabled={isProcessing}>
-            <Bot className="w-4 h-4 mr-2" />
-            Customize & Generate
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="configure">Configure</TabsTrigger>
+          <TabsTrigger value="preview" disabled={!previewData}>Preview</TabsTrigger>
+          <TabsTrigger value="generate">Generate</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="template" className="space-y-6 pt-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Select a Template</h2>
-                <p className="text-muted-foreground">
-                  Choose a predefined template to quickly generate a synthetic dataset
-                </p>
-              </div>
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Quick Start
-              </Badge>
-            </div>
-            <TemplateList templates={DATASET_TEMPLATES} onSelect={handleTemplateSelect} />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="customize" className="space-y-6 pt-4">
+
+        <TabsContent value="configure" className="space-y-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Generation Mode Selection */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bot className="w-5 h-5" />
+                    Generation Mode
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="generationMode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="grid grid-cols-2 gap-4">
+                            {GENERATION_MODES.map((mode) => (
+                              <div
+                                key={mode.id}
+                                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                                  field.value === mode.id
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                                }`}
+                                onClick={() => field.onChange(mode.id)}
+                              >
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <Bot className="w-5 h-5" />
+                                  <h3 className="font-semibold">{mode.name}</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{mode.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Schema Selection for Synthetic Mode */}
+              {watchGenerationMode === "synthetic" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Database className="w-5 h-5" />
-                      Dataset Information
-                    </CardTitle>
+                    <CardTitle>Dataset Schema</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent>
                     <FormField
                       control={form.control}
-                      name="name"
+                      name="schemaId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="My Synthetic Dataset" {...field} disabled={isProcessing} />
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {DATASET_SCHEMAS.map((schema) => (
+                                <div
+                                  key={schema.id}
+                                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                                    field.value === schema.id
+                                      ? 'border-primary bg-primary/5'
+                                      : 'border-border hover:border-primary/50'
+                                  }`}
+                                  onClick={() => field.onChange(schema.id)}
+                                >
+                                  <h3 className="font-semibold mb-2">{schema.name}</h3>
+                                  <p className="text-sm text-muted-foreground mb-3">{schema.description}</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {schema.fields.slice(0, 3).map((schemaField) => (
+                                      <Badge key={schemaField.name} variant="secondary" className="text-xs">
+                                        {schemaField.name}
+                                      </Badge>
+                                    ))}
+                                    {schema.fields.length > 3 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        +{schema.fields.length - 3} more
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* AI Model Configuration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>AI Model Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="description"
+                      name="aiProvider"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe your dataset..." 
-                              className="min-h-[80px]"
-                              {...field} 
-                              disabled={isProcessing}
-                            />
-                          </FormControl>
+                          <FormLabel>AI Provider</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select provider" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {MODEL_PROVIDERS.map((provider) => (
+                                <SelectItem key={provider.id} value={provider.id}>
+                                  {provider.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
-                    <div className="grid grid-cols-2 gap-4">
+
+                    <FormField
+                      control={form.control}
+                      name="modelId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Model</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={modelsLoading}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={modelsLoading ? "Loading..." : "Select model"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {models.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  {model.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Generation Parameters */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Generation Parameters</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {watchGenerationMode === "synthetic" ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="sampleCount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Number of Rows</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={10}
+                                  max={10000}
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormDescription>Generate between 10-10,000 rows</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="maxTokens"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Max Tokens</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={100}
+                                  max={8000}
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                       <FormField
                         control={form.control}
-                        name="price"
+                        name="customPrompt"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Price (USDC)</FormLabel>
+                            <FormLabel>Custom Prompt (Optional)</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="number" 
-                                step="0.01" 
-                                placeholder="0.00" 
-                                {...field} 
-                                disabled={isProcessing}
+                              <Textarea
+                                placeholder="Add custom instructions for data generation..."
+                                className="min-h-[100px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Override the default schema prompt with custom instructions
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="datasetPath"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>HuggingFace Dataset Path</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., squad, imdb" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="inputFeature"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Input Feature</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., text, question" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="augmentPrompt"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Augmentation Prompt</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Describe how to augment the existing data..."
+                                className="min-h-[100px]"
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      
-                      <FormField
-                        control={form.control}
-                        name="visibility"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Visibility</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isProcessing}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select visibility" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="public">Public</SelectItem>
-                                <SelectItem value="private">Private</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Dataset Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Dataset Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="My Synthetic Dataset" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Describe your dataset..."
+                            className="min-h-[80px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="allowNFTAccess"
+                      name="price"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">NFT Access</FormLabel>
-                            <FormDescription>
-                              Allow NFT holders to access this dataset
-                            </FormDescription>
-                          </div>
+                        <FormItem>
+                          <FormLabel>Price (USDC)</FormLabel>
                           <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={isProcessing}
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              {...field}
                             />
                           </FormControl>
+                          <FormDescription>Set to 0 for free dataset</FormDescription>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </CardContent>
-                </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Bot className="w-5 h-5" />
-                      AI Configuration
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="modelId"
+                      name="visibility"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            Model
-                            {modelsLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isProcessing || modelsLoading}>
+                          <FormLabel>Visibility</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder={modelsLoading ? "Loading models..." : "Select a model"} />
+                                <SelectValue />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {models.map((model) => (
-                                <SelectItem key={model.id} value={model.id}>
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-xs">
-                                      {model.provider}
-                                    </Badge>
-                                    {model.name}
-                                  </div>
-                                </SelectItem>
-                              ))}
+                              <SelectItem value="public">Public</SelectItem>
+                              <SelectItem value="private">Private</SelectItem>
                             </SelectContent>
                           </Select>
-                          {modelsError && (
-                            <p className="text-sm text-red-500 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              {modelsError}
-                            </p>
-                          )}
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="datasetPath"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Dataset Path</FormLabel>
-                            <FormControl>
-                              <Input placeholder="dataset/path" {...field} disabled={isProcessing} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="inputFeature"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Input Feature</FormLabel>
-                            <FormControl>
-                              <Input placeholder="text" {...field} disabled={isProcessing} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <FormField
-                      control={form.control}
-                      name="prompt"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Prompt Template</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Use {input} as a placeholder for the dataset value" 
-                              className="min-h-[100px]"
-                              {...field} 
-                              disabled={isProcessing}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Use {'{input}'} as a placeholder for the dataset value
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="maxTokens"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Max Tokens</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              step="1000" 
-                              placeholder="10000" 
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
-                              disabled={isProcessing}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Maximum number of tokens to generate
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-              
-              {/* Progress Display */}
-              {isProcessing && (
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">
-                      {currentStep === 'generating' && `Generation Progress: ${generationProgress}%`}
-                      {currentStep === 'uploading' && uploadStatus}
-                      {currentStep === 'publishing' && 'Publishing dataset on-chain...'}
-                    </p>
-                    <Badge variant="secondary" className="animate-pulse">
-                      {currentStep === 'generating' && 'Generating'}
-                      {currentStep === 'uploading' && 'Uploading'}
-                      {currentStep === 'publishing' && 'Publishing'}
-                    </Badge>
                   </div>
-                  <Progress 
-                    value={
-                      currentStep === 'generating' ? generationProgress : 
-                      currentStep === 'uploading' ? uploadProgress : 
-                      undefined
-                    } 
-                    className="w-full" 
+
+                  <FormField
+                    control={form.control}
+                    name="allowNFTAccess"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">NFT Access</FormLabel>
+                          <FormDescription>
+                            Allow NFT holders to access this dataset for free
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
                   />
-                </div>
-              )}
+                </CardContent>
+              </Card>
 
-              {/* Generated Data Preview */}
-              {generatedData && !isProcessing && (
-                <div className="p-4 border rounded-md bg-muted/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <h4 className="font-semibold">Generated Data Preview</h4>
-                    <Badge variant="secondary">{generatedData.length} samples</Badge>
-                  </div>
-                  <pre className="text-xs overflow-auto max-h-48 bg-background p-3 rounded border">
-                    {JSON.stringify(generatedData.slice(0, 3), null, 2)}
-                  </pre>
-                </div>
-              )}
-
-              {/* Upload Info */}
-              {uploadedInfo && (
-                <div className="mt-4 p-4 border rounded-md bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="w-4 h-4" />
-                    <h4 className="font-semibold">Upload Complete!</h4>
-                  </div>
-                  {uploadedInfo.commp && <p className="text-xs font-mono break-all">Commp: {uploadedInfo.commp}</p>}
-                  {uploadedInfo.txHash && <p className="text-xs font-mono break-all">Tx: {uploadedInfo.txHash}</p>}
-                </div>
-              )}
-              
-              <div className="flex justify-end mt-6">
-                <Button 
-                  type="submit" 
-                  disabled={isProcessing || !isConnected || modelsLoading}
-                  className="w-full"
-                  size="lg"
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePreview}
+                  disabled={isProcessing || !watchSchemaId}
+                  className="flex-1"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Preview Dataset
+                </Button>
+                
+                <Button
+                  type="submit"
+                  disabled={isProcessing || !isConnected}
+                  className="flex-1"
                 >
                   {isProcessing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {currentStep === 'generating' && "Generating..."}
-                      {currentStep === 'uploading' && "Uploading..."}
-                      {currentStep === 'publishing' && "Publishing..."}
+                      Processing...
                     </>
                   ) : (
                     <>
                       <Zap className="mr-2 h-4 w-4" />
-                      Generate & Publish Dataset
+                      Generate & Publish
                     </>
                   )}
                 </Button>
               </div>
             </form>
           </Form>
+        </TabsContent>
+
+        <TabsContent value="preview" className="space-y-4">
+          {previewData && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Dataset Preview</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Showing {previewData.length} sample rows
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {previewData.map((row, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <div className="text-sm font-medium mb-2">Row {index + 1}</div>
+                      <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
+                        {JSON.stringify(row, null, 2)}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="generate" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ready to Generate</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Review your configuration and start the generation process
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Mode:</span> {watchGenerationMode}
+                  </div>
+                  <div>
+                    <span className="font-medium">Schema:</span> {selectedSchema?.name || 'Custom'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Provider:</span> {watchAiProvider}
+                  </div>
+                  <div>
+                    <span className="font-medium">Rows:</span> {form.watch("sampleCount")}
+                  </div>
+                </div>
+                
+                <Button
+                  onClick={form.handleSubmit(onSubmit)}
+                  disabled={isProcessing || !isConnected}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-4 w-4" />
+                      Start Generation
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

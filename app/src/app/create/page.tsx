@@ -53,12 +53,6 @@ export default function CreatePage() {
             
             <TabsContent value="generate" className="pt-6">
               <Card className="bg-card rounded-lg border shadow-sm">
-                <CardHeader>
-                  <CardTitle>Generate Synthetic Dataset</CardTitle>
-                  <CardDescription>
-                    Generate a synthetic dataset using AI models and predefined templates
-                  </CardDescription>
-                </CardHeader>
                 <CardContent className="pt-6">
                   <GenerateDatasetForm />
                 </CardContent>

@@ -60,13 +60,6 @@ export const MODEL_PROVIDERS: ModelProvider[] = [
     description: 'Anthropic API for Claude models',
     baseUrl: 'https://api.anthropic.com/v1',
     apiKeyRequired: true
-  },
-  {
-    id: 'gemini',
-    name: 'Gemini',
-    description: 'Gemini API for AI models',
-    baseUrl: 'https://api.gemini.com/v1',
-    apiKeyRequired: true
   }
 ];
 
@@ -95,24 +88,12 @@ export async function getModels(providerId: string): Promise<Model[]> {
           taskId: 1,
           pricePerMillionTokens: 10000,
           maxTokens: 128000
-        }
-      ];
-    case 'atoma':
-      // In a real implementation, we would fetch from Atoma API
-      return [
-        {
-          id: 'Infermatic/Llama-3.3-70B-Instruct-FP8-Dynamic',
-          name: 'Llama 3.3 70B Instruct',
-          provider: 'atoma',
-          taskId: 2,
-          pricePerMillionTokens: 8000,
-          maxTokens: 32000
         },
         {
-          id: 'Infermatic/Llama-3.1-8B-Instruct',
-          name: 'Llama 3.1 8B Instruct',
-          provider: 'atoma',
-          taskId: 3,
+          id: 'gpt-3.5-turbo',
+          name: 'GPT-3.5 Turbo',
+          provider: 'openai',
+          taskId: 1,
           pricePerMillionTokens: 1000,
           maxTokens: 16000
         }
@@ -134,27 +115,16 @@ export async function getModels(providerId: string): Promise<Model[]> {
           taskId: 5,
           pricePerMillionTokens: 3000,
           maxTokens: 200000
+        },
+        {
+          id: 'claude-3-haiku-20240307',
+          name: 'Claude 3 Haiku',
+          provider: 'anthropic',
+          taskId: 5,
+          pricePerMillionTokens: 250,
+          maxTokens: 200000
         }
       ];
-    case 'gemini':
-        return [
-          {
-            id: 'gemini-1.5-pro-latest',
-            name: 'Gemini 1.5 Pro',
-            provider: 'gemini',
-            taskId: 6,
-            pricePerMillionTokens: 7000,
-            maxTokens: 1048576
-          },
-          {
-            id: 'gemini-1.5-flash-latest',
-            name: 'Gemini 1.5 Flash',
-            provider: 'gemini',
-            taskId: 7,
-            pricePerMillionTokens: 700,
-            maxTokens: 1048576
-          }
-        ];
     default:
       return [];
   }
