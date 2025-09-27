@@ -98,7 +98,7 @@ export function getContractAddresses(chainId: number): {
       filethetic: deploymentInfo.filethetic,
       filethethicDatasetNFT: deploymentInfo.filethethicDatasetNFT,
       filethethicVerifier: deploymentInfo.filethethicVerifier,
-      usdc: deploymentInfo.mockUSDC || getEnv('NEXT_PUBLIC_USDC_ADDRESS'),
+      usdfc: deploymentInfo.mockUSDC || getEnv('NEXT_PUBLIC_USDC_ADDRESS'),
     };
   } catch (error) {
     console.error('Error loading contract addresses:', error);
@@ -185,8 +185,8 @@ export async function getUSDCContract(): Promise<ethers.Contract> {
     
     const addresses = getContractAddresses(chainId);
     usdcContract = new ethers.Contract(
-      addresses.usdc,
-      USDCABI.abi,
+      addresses.usdfc,
+      USDFCABI.abi,
       signer
     );
   }

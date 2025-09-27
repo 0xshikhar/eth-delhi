@@ -79,8 +79,8 @@ export function OverviewCharts({
                   fill="#8884d8"
                   dataKey="value"
                   nameKey="name"
-                  label={({ name, percent }) => 
-                    `${name}: ${(percent || 0 * 100).toFixed(0)}%`
+                  label={({ name, percent }) =>
+                    `${name}: ${(Number(percent ?? 0) * 100).toFixed(0)}%`
                   }
                 >
                   {Object.keys(modelDistribution).map((_, index) => (

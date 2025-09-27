@@ -48,7 +48,7 @@ export const useBalances = () => {
         // Add the required properties from the interface
         balances: {
           fil: formatUnits(filRaw, 18),
-          usdc: formatUnits(usdfcRaw, usdfcDecimals),
+          usdfc: formatUnits(usdfcRaw, usdfcDecimals),
           payments: formatUnits(paymentsRaw, usdfcDecimals),
         },
         storage: {

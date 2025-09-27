@@ -5,7 +5,7 @@ import { formatEther, formatUnits } from 'ethers';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Unlock, ShoppingCart, Shield, CheckCircle, XCircle, Eye, EyeOff, Download } from 'lucide-react';
+import { Lock, Unlock, ShoppingCart, Shield, CheckCircle, XCircle, Eye, EyeOff, Download, Star, Calendar, TrendingUp, Tag } from 'lucide-react';
 import { purchaseDataset, hasAccessToDataset, checkDatasetVerification } from '@/lib/web3';
 import { getDatasetContent } from '@/lib/ipfs';
 import { toast } from 'sonner';     
@@ -23,6 +23,12 @@ export interface DatasetCardProps {
   cid: string; // IPFS CID
   onLock?: (id: number) => Promise<void>;
   onVerificationCheck?: (id: number) => Promise<void>;
+  // New props for enhanced display
+  category?: string;
+  tags?: string[];
+  downloads?: number;
+  rating?: number;
+  viewMode?: 'grid' | 'list';
 }
 
 export function DatasetCard({
@@ -37,6 +43,11 @@ export function DatasetCard({
   cid,
   onLock,
   onVerificationCheck,
+  category,
+  tags,
+  downloads,
+  rating,
+  viewMode = 'grid',
 }: DatasetCardProps) {
   const { address, isConnected } = useAccount();
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -68,8 +79,14 @@ export function DatasetCard({
     try {
       await purchaseDataset(id, price);
       await checkAccess();
-    } catch (error) {
+      toast.success("Dataset Purchased", {
+        description: "You now have access to this dataset!",
+      });
+    } catch (error: any) {
       console.error("Error purchasing dataset:", error);
+      toast.error("Purchase Failed", {
+        description: error.message || "Failed to purchase dataset",
+      });
     } finally {
       setIsPurchasing(false);
     }
@@ -105,28 +122,207 @@ export function DatasetCard({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (error) {
+      
+      toast.success("Download Started", {
+        description: "Dataset download has begun.",
+      });
+    } catch (error: any) {
       console.error("Error downloading dataset:", error);
+      toast.error("Download Failed", {
+        description: error.message || "Failed to download dataset",
+      });
     } finally {
       setIsDownloading(false);
     }
   };
 
-  return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>{name}</CardTitle>
-            <CardDescription>{description || "Medical Reports Data"}</CardDescription>
+  // Render stars for rating
+  const renderRating = (rating: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+    
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />);
+    }
+    
+    if (hasHalfStar) {
+      stars.push(<Star key="half" className="h-3 w-3 fill-yellow-400/50 text-yellow-400" />);
+    }
+    
+    const remainingStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < remainingStars; i++) {
+      stars.push(<Star key={`empty-${i}`} className="h-3 w-3 text-gray-300" />);
+    }
+    
+    return stars;
+  };
+
+  // List view layout
+  if (viewMode === 'list') {
+    return (
+      <Card className="w-full">
+        <div className="flex items-center p-6 space-x-6">
+          {/* Dataset Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h3 className="text-lg font-semibold truncate">{name}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-2">{description || "Medical Reports Data"}</p>
+              </div>
+              <div className="flex gap-2 ml-4">
+                {locked ? (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Lock className="h-3 w-3" /> Locked
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Unlock className="h-3 w-3" /> Unlocked
+                  </Badge>
+                )}
+                
+                {verified !== undefined && (
+                  <Badge 
+                    variant={verified ? "default" : "destructive"}
+                    className="flex items-center gap-1"
+                  >
+                    {verified ? (
+                      <><CheckCircle className="h-3 w-3" /> Verified</>
+                    ) : (
+                      <><XCircle className="h-3 w-3" /> Unverified</>
+                    )}
+                  </Badge>
+                )}
+                
+                {category && (
+                  <Badge variant="outline" className="capitalize">
+                    {category}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            {/* Tags */}
+            {tags && tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {tags.slice(0, 3).map((tag, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    <Tag className="h-2 w-2 mr-1" />
+                    {tag}
+                  </Badge>
+                ))}
+                {tags.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{tags.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            )}
+            
+            {/* Metadata */}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              {downloads !== undefined && (
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  {downloads} downloads
+                </div>
+              )}
+              {rating !== undefined && (
+                <div className="flex items-center gap-1">
+                  {renderRating(rating)}
+                  <span className="ml-1">({rating.toFixed(1)})</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex gap-2">
+          
+          {/* Price and Actions */}
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">Price</div>
+              <div className="text-lg font-semibold">{formattedPrice} USDFC</div>
+            </div>
+            
+            <div className="flex gap-2">
+              {hasAccess === null && isConnected && (
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={checkAccess}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Checking..." : "Check Access"}
+                </Button>
+              )}
+              
+              {hasAccess === true && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1"
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                >
+                  <Download className="h-4 w-4" />
+                  {isDownloading ? "Downloading..." : "Download"}
+                </Button>
+              )}
+              
+              {isOwner && !locked && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleLock}
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  Lock
+                </Button>
+              )}
+              
+              {isOwner && verified === false && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleVerificationCheck}
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  Verify
+                </Button>
+              )}
+              
+              {!isOwner && !hasAccess && (
+                <Button 
+                  onClick={handlePurchase} 
+                  disabled={isPurchasing || !locked}
+                  size="sm"
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {isPurchasing ? "Processing..." : "Purchase"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Grid view layout (default)
+  return (
+    <Card className="w-full max-w-md hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="truncate">{name}</CardTitle>
+            <CardDescription className="line-clamp-2">{description || "Medical Reports Data"}</CardDescription>
+          </div>
+          <div className="flex flex-col gap-2 ml-2">
             {locked ? (
-              <Badge variant="secondary" className="flex items-center gap-1">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                 <Lock className="h-3 w-3" /> Locked
               </Badge>
             ) : (
-              <Badge variant="outline" className="flex items-center gap-1">
+              <Badge variant="outline" className="flex items-center gap-1 text-xs">
                 <Unlock className="h-3 w-3" /> Unlocked
               </Badge>
             )}
@@ -134,7 +330,7 @@ export function DatasetCard({
             {verified !== undefined && (
               <Badge 
                 variant={verified ? "default" : "destructive"}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 text-xs"
               >
                 {verified ? (
                   <><CheckCircle className="h-3 w-3" /> Verified</>
@@ -145,13 +341,54 @@ export function DatasetCard({
             )}
           </div>
         </div>
+        
+        {/* Category and Tags */}
+        <div className="space-y-2 mt-2">
+          {category && (
+            <Badge variant="outline" className="capitalize text-xs">
+              {category}
+            </Badge>
+          )}
+          
+          {tags && tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {tags.slice(0, 2).map((tag, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  <Tag className="h-2 w-2 mr-1" />
+                  {tag}
+                </Badge>
+              ))}
+              {tags.length > 2 && (
+                <Badge variant="secondary" className="text-xs">
+                  +{tags.length - 2}
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
       </CardHeader>
       
-      <CardContent>
-        <div className="flex flex-col gap-2">
+      <CardContent className="pt-0">
+        <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Price:</span>
-            <span className="font-medium">{formattedPrice} USDFC</span>
+            <span className="font-medium text-lg">{formattedPrice} USDFC</span>
+          </div>
+          
+          {/* Metadata */}
+          <div className="flex justify-between items-center text-sm text-muted-foreground">
+            {downloads !== undefined && (
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                {downloads}
+              </div>
+            )}
+            {rating !== undefined && (
+              <div className="flex items-center gap-1">
+                {renderRating(rating)}
+                <span className="ml-1 text-xs">({rating.toFixed(1)})</span>
+              </div>
+            )}
           </div>
           
           {hasAccess === null && isConnected && (
@@ -181,7 +418,7 @@ export function DatasetCard({
         </div>
       </CardContent>
       
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex justify-between pt-0">
         <div className="flex gap-2">
           {isOwner && !locked && (
             <Button 
@@ -190,7 +427,7 @@ export function DatasetCard({
               onClick={handleLock}
             >
               <Lock className="h-4 w-4 mr-2" />
-              Lock Dataset
+              Lock
             </Button>
           )}
           

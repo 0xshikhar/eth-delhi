@@ -23,6 +23,8 @@ export interface Dataset {
   ipfsHash?: string;
   verifier?: string;
   category?: string;
+  rating?: number;
+  tags?: string[];
 }
 
 export interface DatasetStats {
