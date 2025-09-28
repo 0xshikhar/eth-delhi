@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatEther, formatUnits } from 'ethers';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Lock, Unlock, ShoppingCart, Shield, CheckCircle, XCircle, Eye, EyeOff, Download, Star, Calendar, TrendingUp, Tag } from 'lucide-react';
 import { purchaseDataset, hasAccessToDataset, checkDatasetVerification } from '@/lib/web3';
 import { getDatasetContent } from '@/lib/ipfs';
-import { toast } from 'sonner';     
+import { toast } from 'sonner';
 import { useAccount } from 'wagmi';
 
 export interface DatasetCardProps {
@@ -49,6 +50,7 @@ export function DatasetCard({
   rating,
   viewMode = 'grid',
 }: DatasetCardProps) {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
@@ -99,19 +101,20 @@ export function DatasetCard({
   };
 
   const handleVerificationCheck = async () => {
+    router.push('/verify');
     if (onVerificationCheck) {
       await onVerificationCheck(id);
     }
   };
-  
+
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
       const content = await getDatasetContent(cid);
-      
+
       // Convert content to JSON string
       const jsonString = JSON.stringify(content, null, 2);
-      
+
       // Create a blob and download
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -122,7 +125,7 @@ export function DatasetCard({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast.success("Download Started", {
         description: "Dataset download has begun.",
       });
@@ -141,20 +144,20 @@ export function DatasetCard({
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
-    
+
     for (let i = 0; i < fullStars; i++) {
       stars.push(<Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />);
     }
-    
+
     if (hasHalfStar) {
       stars.push(<Star key="half" className="h-3 w-3 fill-yellow-400/50 text-yellow-400" />);
     }
-    
+
     const remainingStars = 5 - Math.ceil(rating);
     for (let i = 0; i < remainingStars; i++) {
       stars.push(<Star key={`empty-${i}`} className="h-3 w-3 text-gray-300" />);
     }
-    
+
     return stars;
   };
 
@@ -180,9 +183,9 @@ export function DatasetCard({
                     <Unlock className="h-3 w-3" /> Unlocked
                   </Badge>
                 )}
-                
+
                 {verified !== undefined && (
-                  <Badge 
+                  <Badge
                     variant={verified ? "default" : "destructive"}
                     className="flex items-center gap-1"
                   >
@@ -193,7 +196,7 @@ export function DatasetCard({
                     )}
                   </Badge>
                 )}
-                
+
                 {category && (
                   <Badge variant="outline" className="capitalize">
                     {category}
@@ -201,7 +204,7 @@ export function DatasetCard({
                 )}
               </div>
             </div>
-            
+
             {/* Tags */}
             {tags && tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2">
@@ -218,7 +221,7 @@ export function DatasetCard({
                 )}
               </div>
             )}
-            
+
             {/* Metadata */}
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               {downloads !== undefined && (
@@ -235,30 +238,30 @@ export function DatasetCard({
               )}
             </div>
           </div>
-          
+
           {/* Price and Actions */}
           <div className="flex items-center gap-4">
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Price</div>
               <div className="text-lg font-semibold">{formattedPrice} USDFC</div>
             </div>
-            
+
             <div className="flex gap-2">
               {hasAccess === null && isConnected && (
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={checkAccess}
                   disabled={isLoading}
                 >
                   {isLoading ? "Checking..." : "Check Access"}
                 </Button>
               )}
-              
+
               {hasAccess === true && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="gap-1"
                   onClick={handleDownload}
                   disabled={isDownloading}
@@ -267,10 +270,10 @@ export function DatasetCard({
                   {isDownloading ? "Downloading..." : "Download"}
                 </Button>
               )}
-              
+
               {isOwner && !locked && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleLock}
                 >
@@ -278,7 +281,7 @@ export function DatasetCard({
                   Lock
                 </Button>
               )}
-              
+
               {isOwner && verified === false && (
                 <Button
                   variant="outline"
@@ -289,10 +292,10 @@ export function DatasetCard({
                   Verify
                 </Button>
               )}
-              
+
               {!isOwner && !hasAccess && (
-                <Button 
-                  onClick={handlePurchase} 
+                <Button
+                  onClick={handlePurchase}
                   disabled={isPurchasing || !locked}
                   size="sm"
                 >
@@ -309,14 +312,14 @@ export function DatasetCard({
 
   // Grid view layout (default)
   return (
-    <Card className="w-full max-w-md hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-3">
+    <Card className="w-full hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/50 shadow-lg">
+      <CardHeader className="pb-4">
         <div className="flex justify-between items-start">
           <div className="min-w-0 flex-1">
-            <CardTitle className="truncate">{name}</CardTitle>
-            <CardDescription className="line-clamp-2">{description || "Medical Reports Data"}</CardDescription>
+            <CardTitle className="truncate text-lg font-bold text-gray-900">{name}</CardTitle>
+            <CardDescription className="line-clamp-2 text-gray-600 mt-1">{description || "Medical Reports Data"}</CardDescription>
           </div>
-          <div className="flex flex-col gap-2 ml-2">
+          <div className="flex flex-col gap-2 ml-3">
             {locked ? (
               <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                 <Lock className="h-3 w-3" /> Locked
@@ -326,9 +329,9 @@ export function DatasetCard({
                 <Unlock className="h-3 w-3" /> Unlocked
               </Badge>
             )}
-            
+
             {verified !== undefined && (
-              <Badge 
+              <Badge
                 variant={verified ? "default" : "destructive"}
                 className="flex items-center gap-1 text-xs"
               >
@@ -341,7 +344,7 @@ export function DatasetCard({
             )}
           </div>
         </div>
-        
+
         {/* Category and Tags */}
         <div className="space-y-2 mt-2">
           {category && (
@@ -349,7 +352,7 @@ export function DatasetCard({
               {category}
             </Badge>
           )}
-          
+
           {tags && tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {tags.slice(0, 2).map((tag, index) => (
@@ -367,47 +370,47 @@ export function DatasetCard({
           )}
         </div>
       </CardHeader>
-      
-      <CardContent className="pt-0">
-        <div className="flex flex-col gap-3">
+
+      <CardContent className="pt-0 pb-4">
+        <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Price:</span>
-            <span className="font-medium text-lg">{formattedPrice} USDFC</span>
+            <span className="text-sm font-medium text-gray-500">Price:</span>
+            <span className="font-bold text-xl text-blue-600">{formattedPrice} USDFC</span>
           </div>
-          
+
           {/* Metadata */}
-          <div className="flex justify-between items-center text-sm text-muted-foreground">
+          <div className="flex justify-between items-center text-sm text-gray-500">
             {downloads !== undefined && (
               <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                {downloads}
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                <span className="font-medium">{downloads}</span>
               </div>
             )}
             {rating !== undefined && (
               <div className="flex items-center gap-1">
                 {renderRating(rating)}
-                <span className="ml-1 text-xs">({rating.toFixed(1)})</span>
+                <span className="ml-1 text-xs font-medium">({rating.toFixed(1)})</span>
               </div>
             )}
           </div>
-          
+
           {hasAccess === null && isConnected && (
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              className="mt-2"
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-2 w-full"
               onClick={checkAccess}
               disabled={isLoading}
             >
               {isLoading ? "Checking..." : "Check Access"}
             </Button>
           )}
-          
+
           {hasAccess === true && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2 gap-1"
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 gap-1 w-full"
               onClick={handleDownload}
               disabled={isDownloading}
             >
@@ -417,37 +420,40 @@ export function DatasetCard({
           )}
         </div>
       </CardContent>
-      
-      <CardFooter className="flex justify-between pt-0">
-        <div className="flex gap-2">
+
+      <CardFooter className="flex flex-col gap-3 pt-0">
+        <div className="flex gap-2 w-full">
           {isOwner && !locked && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={handleLock}
+              className="flex-1"
             >
               <Lock className="h-4 w-4 mr-2" />
               Lock
             </Button>
           )}
-          
+
           {isOwner && verified === false && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleVerificationCheck}
+              className="flex-1"
             >
               <Shield className="h-4 w-4 mr-2" />
               Verify
             </Button>
           )}
         </div>
-        
+
         {!isOwner && !hasAccess && (
-          <Button 
-            onClick={handlePurchase} 
+          <Button
+            onClick={handlePurchase}
             disabled={isPurchasing || !locked}
             size="sm"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
             {isPurchasing ? "Processing..." : "Purchase"}

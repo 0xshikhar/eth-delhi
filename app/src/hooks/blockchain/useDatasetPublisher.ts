@@ -120,7 +120,8 @@ export function useDatasetPublisher() {
       }
     } catch (error) {
       console.error('💥 [useDatasetPublisher] Error publishing dataset:', error);
-      toast.error(`Failed to publish dataset: ${(error as Error).message}`);
+      toast.error('Failed to publish dataset');
+      throw error; // Re-throw to let the caller handle it
     } finally {
       console.log('🏁 [useDatasetPublisher] Publishing process finished, setting isPublishing to false');
       setIsPublishing(false);

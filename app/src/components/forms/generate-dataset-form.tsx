@@ -314,7 +314,7 @@ export function GenerateDatasetForm() {
         price: values.price,
         visibility: values.visibility,
         modelId: values.modelId,
-        generatedData: [{ data: generatedData, metadata: {} }] as any,
+        generatedData: generatedData, // Pass the actual generated data array directly
         commp: uploadedInfo.commp || '',
         onSuccess: () => {
           console.log('🎉 [GenerateDatasetForm] Publishing onSuccess callback triggered');
