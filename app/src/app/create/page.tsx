@@ -20,10 +20,12 @@ export default function CreatePage() {
   const [cid, setCid] = useState<string>('');
   const [fileData, setFileData] = useState<any>(null);
 
-  const handleUploadComplete = (uploadedInfo: UploadedInfo, parsedData: any) => {
+  const handleUploadComplete = (uploadedInfo: UploadedInfo) => {
     if (uploadedInfo.cid) {
       setCid(uploadedInfo.cid);
-      setFileData(parsedData);
+      // For now, we'll set fileData to null since we don't have parsed data
+      // This might need to be updated based on how the file parsing is handled
+      setFileData(null);
       setUploadStep('publish');
     }
   };

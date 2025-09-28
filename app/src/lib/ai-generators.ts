@@ -58,7 +58,7 @@ export class OpenAIGenerator implements AIGenerator {
     if (!OPENAI_API_KEY) {
       throw new Error('OpenAI API key is missing. Pass it using the \'apiKey\' parameter or the OPENAI_API_KEY environment variable.');
     }
-    
+
     // Create OpenAI instance with API key
     this.openaiInstance = createOpenAI({
       apiKey: OPENAI_API_KEY,
@@ -71,8 +71,8 @@ export class OpenAIGenerator implements AIGenerator {
   }
 
   async generateSyntheticData(
-    schema: DatasetSchema, 
-    sampleCount: number, 
+    schema: DatasetSchema,
+    sampleCount: number,
     options: GenerationOptions = {}
   ): Promise<GenerationResult> {
     const { temperature = 0.7, maxTokens = 4000, model } = options;
@@ -120,7 +120,7 @@ export class OpenAIGenerator implements AIGenerator {
       } catch (parseError) {
         console.log('❌ Direct JSON parse failed:', parseError);
         console.log('🔍 Attempting to extract JSON from response...');
-        
+
         // Try to extract JSON from the response if it's wrapped in other text
         const jsonMatch = result.text.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
@@ -134,69 +134,69 @@ export class OpenAIGenerator implements AIGenerator {
             throw new Error(`Failed to parse JSON response. Raw response: ${result.text.substring(0, 500)}...`);
           }
         } else {
-            console.log('🔍 No JSON array found, trying code block extraction...');
-            // Try to find JSON objects wrapped in code blocks
-            const codeBlockMatch = result.text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-            if (codeBlockMatch) {
-              console.log('🎯 Found JSON in code block:', codeBlockMatch[1].substring(0, 200) + '...');
-              try {
-                parsedData = JSON.parse(codeBlockMatch[1]);
-                console.log('✅ Code block JSON extraction successful:', { dataLength: parsedData.length });
-              } catch (codeBlockError) {
-                console.error('❌ Failed to parse code block JSON:', codeBlockError);
-                console.error('🔍 Code block content:', codeBlockMatch[1]);
-                throw new Error(`Failed to parse JSON response. Raw response: ${result.text.substring(0, 500)}...`);
+          console.log('🔍 No JSON array found, trying code block extraction...');
+          // Try to find JSON objects wrapped in code blocks
+          const codeBlockMatch = result.text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+          if (codeBlockMatch) {
+            console.log('🎯 Found JSON in code block:', codeBlockMatch[1].substring(0, 200) + '...');
+            try {
+              parsedData = JSON.parse(codeBlockMatch[1]);
+              console.log('✅ Code block JSON extraction successful:', { dataLength: parsedData.length });
+            } catch (codeBlockError) {
+              console.error('❌ Failed to parse code block JSON:', codeBlockError);
+              console.error('🔍 Code block content:', codeBlockMatch[1]);
+              throw new Error(`Failed to parse JSON response. Raw response: ${result.text.substring(0, 500)}...`);
+            }
+          } else {
+            // Step 4: Try to fix incomplete JSON by adding missing closing brackets
+            console.log('🔧 Attempting to fix incomplete JSON...');
+            let fixedJson = result.text.trim();
+
+            // Count opening and closing brackets
+            const openBrackets = (fixedJson.match(/\[/g) || []).length;
+            const closeBrackets = (fixedJson.match(/\]/g) || []).length;
+            const openBraces = (fixedJson.match(/\{/g) || []).length;
+            const closeBraces = (fixedJson.match(/\}/g) || []).length;
+
+            console.log('🔍 Bracket analysis:', { openBrackets, closeBrackets, openBraces, closeBraces });
+
+            // If we have unmatched brackets, try to fix them
+            if (openBrackets > closeBrackets || openBraces > closeBraces) {
+              // Remove any trailing incomplete object
+              const lastCompleteObject = fixedJson.lastIndexOf('}');
+              if (lastCompleteObject > 0) {
+                fixedJson = fixedJson.substring(0, lastCompleteObject + 1);
               }
-            } else {
-              // Step 4: Try to fix incomplete JSON by adding missing closing brackets
-              console.log('🔧 Attempting to fix incomplete JSON...');
-              let fixedJson = result.text.trim();
-              
-              // Count opening and closing brackets
-              const openBrackets = (fixedJson.match(/\[/g) || []).length;
-              const closeBrackets = (fixedJson.match(/\]/g) || []).length;
-              const openBraces = (fixedJson.match(/\{/g) || []).length;
-              const closeBraces = (fixedJson.match(/\}/g) || []).length;
-              
-              console.log('🔍 Bracket analysis:', { openBrackets, closeBrackets, openBraces, closeBraces });
-              
-              // If we have unmatched brackets, try to fix them
-              if (openBrackets > closeBrackets || openBraces > closeBraces) {
-                // Remove any trailing incomplete object
-                const lastCompleteObject = fixedJson.lastIndexOf('}');
-                if (lastCompleteObject > 0) {
-                  fixedJson = fixedJson.substring(0, lastCompleteObject + 1);
-                }
-                
-                // Add missing closing braces
-                const missingBraces = openBraces - (fixedJson.match(/\}/g) || []).length;
-                for (let i = 0; i < missingBraces; i++) {
-                  fixedJson += '\n  }';
-                }
-                
-                // Add missing closing brackets
-                const missingBrackets = openBrackets - (fixedJson.match(/\]/g) || []).length;
-                for (let i = 0; i < missingBrackets; i++) {
-                  fixedJson += '\n]';
-                }
-                
-                console.log('🔧 Attempting to parse fixed JSON...');
-                try {
-                  parsedData = JSON.parse(fixedJson);
-                  console.log('✅ Fixed JSON parse successful:', { dataLength: parsedData.length });
-                } catch (parseError) {
-                  console.log('❌ Fixed JSON parse failed:', parseError);
-                  console.error('❌ No JSON found in response');
-                  console.error('🔍 Full response for debugging:', result.text);
-                  throw new Error(`Failed to parse JSON response. Raw response: ${result.text.substring(0, 500)}...`);
-                }
-              } else {
+
+              // Add missing closing braces
+              const missingBraces = openBraces - (fixedJson.match(/\}/g) || []).length;
+              for (let i = 0; i < missingBraces; i++) {
+                fixedJson += '\n  }';
+              }
+
+              // Add missing closing brackets
+              const missingBrackets = openBrackets - (fixedJson.match(/\]/g) || []).length;
+              for (let i = 0; i < missingBrackets; i++) {
+                fixedJson += '\n]';
+              }
+
+              console.log('🔧 Attempting to parse fixed JSON...');
+              try {
+                parsedData = JSON.parse(fixedJson);
+                console.log('✅ Fixed JSON parse successful:', { dataLength: parsedData.length });
+              } catch (parseError) {
+                console.log('❌ Fixed JSON parse failed:', parseError);
                 console.error('❌ No JSON found in response');
                 console.error('🔍 Full response for debugging:', result.text);
                 throw new Error(`Failed to parse JSON response. Raw response: ${result.text.substring(0, 500)}...`);
               }
+            } else {
+              console.error('❌ No JSON found in response');
+              console.error('🔍 Full response for debugging:', result.text);
+              throw new Error(`Failed to parse JSON response. Raw response: ${result.text.substring(0, 500)}...`);
             }
           }
+        }
       }
 
       console.log('🔍 Validating data with Zod schema...');
@@ -313,7 +313,7 @@ export class OpenAIGenerator implements AIGenerator {
   private createPrompt(schema: DatasetSchema, sampleCount: number): string {
     const fieldDescriptions = schema.fields.map(field => {
       let desc = `- ${field.name} (${field.type}${field.required ? ', required' : ', optional'}): ${field.description}`;
-      
+
       if (field.constraints?.enum) {
         desc += ` [Must be one of: ${field.constraints.enum.join(', ')}]`;
       }
@@ -323,7 +323,7 @@ export class OpenAIGenerator implements AIGenerator {
       if (field.examples && field.examples.length > 0) {
         desc += ` [Examples: ${field.examples.slice(0, 3).map(ex => JSON.stringify(ex)).join(', ')}]`;
       }
-      
+
       return desc;
     }).join('\n');
 
@@ -337,12 +337,15 @@ ${fieldDescriptions}
 Requirements:
 1. Generate exactly ${sampleCount} unique, realistic samples
 2. Ensure all required fields are present and non-empty
-3. Follow the specified constraints for each field exactly
-4. Make the data diverse and realistic
-5. Use realistic, varied values that would be found in real-world scenarios
-6. For enum fields, only use the specified values
-7. For numeric fields, stay within the specified ranges
-8. Make each sample unique and different from others
+3. Follow the specified constraints for each field exactly (especially minimum lengths)
+4. For description fields with minimum length requirements, ensure they meet or exceed the minimum
+5. Make the data diverse and realistic
+6. Use realistic, varied values that would be found in real-world scenarios
+7. For enum fields, only use the specified values
+8. For numeric fields, stay within the specified ranges
+9. Make each sample unique and different from others
+
+CRITICAL: For any field with a minimum length constraint (like description fields requiring 20+ characters), ensure the generated content meets or exceeds that requirement.
 
 IMPORTANT: Return ONLY a valid JSON array containing the ${sampleCount} data objects. Do not include any explanatory text, markdown formatting, or code blocks. The response must be parseable as JSON.
 
@@ -368,7 +371,7 @@ export class AnthropicGenerator implements AIGenerator {
     if (!ANTHROPIC_API_KEY) {
       throw new Error('Anthropic API key is missing. Pass it using the \'apiKey\' parameter or the ANTHROPIC_API_KEY environment variable.');
     }
-    
+
     // Create Anthropic instance with API key
     this.anthropicInstance = createAnthropic({
       apiKey: ANTHROPIC_API_KEY,
@@ -381,8 +384,8 @@ export class AnthropicGenerator implements AIGenerator {
   }
 
   async generateSyntheticData(
-    schema: DatasetSchema, 
-    sampleCount: number, 
+    schema: DatasetSchema,
+    sampleCount: number,
     options: GenerationOptions = {}
   ): Promise<GenerationResult> {
     const { temperature = 0.7, maxTokens = 4000, model } = options;
@@ -408,7 +411,7 @@ export class AnthropicGenerator implements AIGenerator {
         parsedData = JSON.parse(result.text);
       } catch (parseError) {
         console.log('Direct JSON parse failed, attempting to extract JSON from response:', result.text);
-        
+
         // Try to extract JSON from the response if it's wrapped in other text
         const jsonMatch = result.text.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
@@ -535,7 +538,7 @@ export class AnthropicGenerator implements AIGenerator {
   private createPrompt(schema: DatasetSchema, sampleCount: number): string {
     const fieldDescriptions = schema.fields.map(field => {
       let desc = `- ${field.name} (${field.type}${field.required ? ', required' : ', optional'}): ${field.description}`;
-      
+
       if (field.constraints?.enum) {
         desc += ` [Must be one of: ${field.constraints.enum.join(', ')}]`;
       }
@@ -545,7 +548,7 @@ export class AnthropicGenerator implements AIGenerator {
       if (field.examples && field.examples.length > 0) {
         desc += ` [Examples: ${field.examples.slice(0, 3).map(ex => JSON.stringify(ex)).join(', ')}]`;
       }
-      
+
       return desc;
     }).join('\n');
 
@@ -559,12 +562,15 @@ ${fieldDescriptions}
 Requirements:
 1. Generate exactly ${sampleCount} unique, realistic samples
 2. Ensure all required fields are present and non-empty
-3. Follow the specified constraints for each field exactly
-4. Make the data diverse and realistic
-5. Use realistic, varied values that would be found in real-world scenarios
-6. For enum fields, only use the specified values
-7. For numeric fields, stay within the specified ranges
-8. Make each sample unique and different from others
+3. Follow the specified constraints for each field exactly (especially minimum lengths)
+4. For description fields with minimum length requirements, ensure they meet or exceed the minimum
+5. Make the data diverse and realistic
+6. Use realistic, varied values that would be found in real-world scenarios
+7. For enum fields, only use the specified values
+8. For numeric fields, stay within the specified ranges
+9. Make each sample unique and different from others
+
+CRITICAL: For any field with a minimum length constraint (like description fields requiring 50+ characters), ensure the generated content meets or exceeds that requirement.
 
 IMPORTANT: Return ONLY a valid JSON array containing the ${sampleCount} data objects. Do not include any explanatory text, markdown formatting, or code blocks. The response must be parseable as JSON.
 

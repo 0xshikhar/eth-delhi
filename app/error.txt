@@ -1,0 +1,196 @@
+✅ Synapse initialized successfully
+_app-pages-browser_node_modules_walletconnect_modal-ui_dist_index_js.js:882 Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+overrideMethod @ hook.js:608
+issueWarning @ reactive-element.js:58
+eval @ reactive-element.js:62
+(app-pages-browser)/./node_modules/@lit/reactive-element/development/reactive-element.js @ _app-pages-browser_node_modules_walletconnect_modal-ui_dist_index_js.js:882
+options.factory @ webpack.js?v=1759022618561:720
+__webpack_require__ @ webpack.js?v=1759022618561:37
+fn @ webpack.js?v=1759022618561:376
+eval @ index.js:23
+(app-pages-browser)/./node_modules/lit/index.js @ _app-pages-browser_node_modules_walletconnect_modal-ui_dist_index_js.js:1003
+options.factory @ webpack.js?v=1759022618561:720
+__webpack_require__ @ webpack.js?v=1759022618561:37
+fn @ webpack.js?v=1759022618561:376
+eval @ index.js:6
+(app-pages-browser)/./node_modules/@walletconnect/modal-ui/dist/index.js @ _app-pages-browser_node_modules_walletconnect_modal-ui_dist_index_js.js:893
+options.factory @ webpack.js?v=1759022618561:720
+__webpack_require__ @ webpack.js?v=1759022618561:37
+fn @ webpack.js?v=1759022618561:376
+Promise.then
+initUi @ index.js:20
+WalletConnectModal @ index.js:16
+initialize @ index.es.js:14
+await in initialize
+init @ index.es.js:14
+initProvider @ walletConnect.js:159
+await in initProvider
+getProvider @ walletConnect.js:176
+setup @ walletConnect.js:31
+setup @ createConfig.js:75
+eval @ createConfig.js:40
+createStoreImpl @ vanilla.mjs:23
+createStore @ vanilla.mjs:26
+createConfig @ createConfig.js:36
+getDefaultConfig @ index.js:10029
+eval @ providers.tsx:29
+(app-pages-browser)/./src/app/providers.tsx @ layout.js:1209
+options.factory @ webpack.js?v=1759022618561:720
+__webpack_require__ @ webpack.js?v=1759022618561:37
+fn @ webpack.js?v=1759022618561:376
+Promise.then
+eval @ next-flight-client-entry-loader.js?modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fnode_modules%2Fnext%2Ffont%2Fgoogle%2Ftarget.css%3F%7B%5C%22path%5C%22%3A%5C%22src%2Fapp%2Flayout.tsx%5C%22%2C%5C%22import%5C%22%3A%5C%22Inter%5C%22%2C%5C%22arguments%5C%22%3A%5B%7B%5C%22subsets%5C%22%3A%5B%5C%22latin%5C%22%5D%7D%5D%2C%5C%22variableName%5C%22%3A%5C%22inter%5C%22%7D%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fsrc%2Fapp%2Fglobals.css%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fsrc%2Fapp%2Fproviders.tsx%22%2C%22ids%22%3A%5B%22Providers%22%5D%7D&modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fsrc%2Fcomponents%2Ftheme-provider.tsx%22%2C%22ids%22%3A%5B%22ThemeProvider%22%5D%7D&modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fsrc%2Fconfig%2FConfettiProvider.tsx%22%2C%22ids%22%3A%5B%22ConfettiProvider%22%5D%7D&server=false!:5
+(app-pages-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-client-entry-loader.js?modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fnode_modules%2Fnext%2Ffont%2Fgoogle%2Ftarget.css%3F%7B%5C%22path%5C%22%3A%5C%22src%2Fapp%2Flayout.tsx%5C%22%2C%5C%22import%5C%22%3A%5C%22Inter%5C%22%2C%5C%22arguments%5C%22%3A%5B%7B%5C%22subsets%5C%22%3A%5B%5C%22latin%5C%22%5D%7D%5D%2C%5C%22variableName%5C%22%3A%5C%22inter%5C%22%7D%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fsrc%2Fapp%2Fglobals.css%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fsrc%2Fapp%2Fproviders.tsx%22%2C%22ids%22%3A%5B%22Providers%22%5D%7D&modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fsrc%2Fcomponents%2Ftheme-provider.tsx%22%2C%22ids%22%3A%5B%22ThemeProvider%22%5D%7D&modules=%7B%22request%22%3A%22%2FUsers%2Fshikharsingh%2FDownloads%2Fcode%2Feth-delhi%2Ffilecoin%2Ffilethetic-project%2Fapp%2Fsrc%2Fconfig%2FConfettiProvider.tsx%22%2C%22ids%22%3A%5B%22ConfettiProvider%22%5D%7D&server=false! @ layout.js:27
+options.factory @ webpack.js?v=1759022618561:720
+__webpack_require__ @ webpack.js?v=1759022618561:37
+__webpack_exec__ @ layout.js:8144
+(anonymous) @ layout.js:8145
+__webpack_require__.O @ webpack.js?v=1759022618561:91
+(anonymous) @ layout.js:8146
+webpackJsonpCallback @ webpack.js?v=1759022618561:1392
+(anonymous) @ layout.js:9Understand this warning
+useDataUpload.ts:67  GET http://10.0.0.56:4702/pdp/ping net::ERR_CONNECTION_TIMED_OUT
+ping @ server.js:299
+selectProviderWithPing @ context.js:404
+await in selectProviderWithPing
+selectRandomProvider @ context.js:393
+smartSelectProvider @ context.js:355
+await in smartSelectProvider
+resolveProviderAndDataSet @ context.js:217
+await in resolveProviderAndDataSet
+create @ context.js:71
+createContext @ manager.js:140
+createStorage @ synapse.js:158
+mutationFn @ useDataUpload.ts:67
+await in mutationFn
+fn @ mutation.js:72
+run @ retryer.js:91
+start @ retryer.js:132
+execute @ mutation.js:107
+await in execute
+mutate @ mutationObserver.js:69
+handleTestUpload @ UploadTest.tsx:30
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112Understand this error
+useDataUpload.ts:67 Provider 0x48884F0E81006CF3A3997Dc8B39e6632e70B2476 failed ping test: Failed to fetch
+overrideMethod @ hook.js:608
+s
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112Understand this warning
+useDataUpload.ts:94 Storage provider selected: {id: 4, serviceProvider: '0xCb9e86945cA31E6C3120725BF0385CBAD684040c', payee: '0xCb9e86945cA31E6C3120725BF0385CBAD684040c', name: 'infrafolio-calib', description: '', …}
+useDataUpload.ts:67  POST https://caliberation-pdp.infrafolio.com/pdp/data-sets 500 (Internal Server Error)
+createDataSet @ server.js:37
+await in createDataSet
+createDataSet @ context.js:114
+await in createDataSet
+create @ context.js:80
+await in create
+createContext @ manager.js:140
+createStorage @ synapse.js:158
+mutationFn @ useDataUpload.ts:67
+await in mutationFn
+fn @ mutation.js:72
+run @ retryer.js:91
+start @ retryer.js:132
+execute @ mutation.js:107
+await in execute
+mutate @ mutationObserver.js:69
+handleTestUpload @ UploadTest.tsx:30
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112Understand this error
+useDataUpload.ts:150 Upload failed: Error: Failed to create data set: 500  - Failed to send transaction: failed to estimate gas: message execution failed (exit=[33], revert reason=[message failed with backtrace:
+00: f0169791 (method 3844450837) -- contract reverted at 75 (33)
+01: f0169791 (method 6) -- contract reverted at 4535 (33)
+02: f0169800 (method 3844450837) -- contract reverted at 75 (33)
+03: f0169800 (method 6) -- contract reverted at 10988 (33)
+04: f0169792 (method 3844450837) -- contract reverted at 13238 (33)
+ (RetCode=33)], vm error=[0x8dcd060600000000000000000000000000000000000000000000000000bed1d0263c5a00000000000000000000000000000000000000000000000000016345b3d5781300])
+
+    at PDPServer.createDataSet (server.js:46:19)
+    at async StorageContext.createDataSet (context.js:114:30)
+    at async StorageContext.create (context.js:80:30)
+    at async StorageManager.createContext (manager.js:140:29)
+    at async Synapse.createStorage (synapse.js:158:16)
+    at async Object.mutationFn (useDataUpload.ts:67:30)
+overrideMethod @ hook.js:608
+window.console.error @ app-index.js:33
+console.error @ hydration-error-info.js:63
+onError @ useDataUpload.ts:150
+execute @ mutation.js:133
+await in execute
+mutate @ mutationObserver.js:69
+handleTestUpload @ UploadTest.tsx:30
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112Understand this error
+UploadTest.tsx:32 Test upload failed: Error: Failed to create data set: 500  - Failed to send transaction: failed to estimate gas: message execution failed (exit=[33], revert reason=[message failed with backtrace:
+00: f0169791 (method 3844450837) -- contract reverted at 75 (33)
+01: f0169791 (method 6) -- contract reverted at 4535 (33)
+02: f0169800 (method 3844450837) -- contract reverted at 75 (33)
+03: f0169800 (method 6) -- contract reverted at 10988 (33)
+04: f0169792 (method 3844450837) -- contract reverted at 13238 (33)
+ (RetCode=33)], vm error=[0x8dcd060600000000000000000000000000000000000000000000000000bed1d0263c5a00000000000000000000000000000000000000000000000000016345b3d5781300])
+
+    at PDPServer.createDataSet (server.js:46:19)
+    at async StorageContext.createDataSet (context.js:114:30)
+    at async StorageContext.create (context.js:80:30)
+    at async StorageManager.createContext (manager.js:140:29)
+    at async Synapse.createStorage (synapse.js:158:16)
+    at async Object.mutationFn (useDataUpload.ts:67:30)
+overrideMethod @ hook.js:608
+window.console.error @ app-index.js:33
+console.error @ hydration-error-info.js:63
+handleTestUpload @ UploadTest.tsx:32
+await in handleTestUpload
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112Understand this error

@@ -11,10 +11,8 @@ export const clientToSigner = (client: Client<Transport, Chain, Account>) => {
     name: chain.name,
     ensAddress: chain.contracts?.ensRegistry?.address,
   };
-  // Create provider
   const provider = new BrowserProvider(transport, network);
-  // In ethers v6, we can't synchronously get a signer, so we create a JsonRpcSigner directly
-  // This is a workaround to maintain compatibility with the existing code
+  provider.getSigner();
   const signer = new JsonRpcSigner(provider, account.address);
   return signer;
 };

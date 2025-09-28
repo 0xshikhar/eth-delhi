@@ -18,7 +18,7 @@
     "@ai-sdk/openai": "^2.0.38",
     "@dmitryrechkin/json-schema-to-zod": "^1.0.1",
     "@ethersproject/units": "^5.8.0",
-    "@filoz/synapse-sdk": "^0.18.0",
+    "@filoz/synapse-sdk": "^0.28.0",
     "@hookform/resolvers": "^3.3.4",
     "@ipld/dag-cbor": "^9.2.5",
     "@lighthouse-web3/sdk": "^0.4.0",

@@ -80,7 +80,7 @@ export const DATASET_SCHEMAS: DatasetSchema[] = [
         type: 'string',
         description: 'Detailed product description',
         required: true,
-        constraints: { min: 50, max: 500 },
+        constraints: { min: 20, max: 500 },
         examples: ['High-quality wireless headphones with noise cancellation and 30-hour battery life']
       },
       {

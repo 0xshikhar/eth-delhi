@@ -256,11 +256,14 @@ export function GenerateDatasetForm() {
     if (!generatedData) return;
 
     try {
-      const jsonData = JSON.stringify(generatedData, null, 2);
-      const blob = new Blob([jsonData], { type: 'application/json' });
-      const file = new File([blob], `${form.getValues("name")}.json`, { type: 'application/json' });
+      console.log('📤 Uploading generated data:', {
+        dataSize: JSON.stringify(generatedData).length,
+        sampleCount: generatedData.length,
+        firstItem: generatedData[0]
+      });
       
-      await uploadData(file);
+      // Pass raw data to the upload hook - it will create the File object internally
+      await uploadData(generatedData);
     } catch (error) {
       console.error('Upload failed:', error);
       setProcessError('Failed to upload dataset');

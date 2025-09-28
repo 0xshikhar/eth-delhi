@@ -1,4 +1,268 @@
-# Filethetic
+# 🚀 Filethetic
+
+**Decentralized Data Marketplace to create, verify, and trade synthetic datasets on Filecoin blockchain**
+
+Filethetic is enables the creation, verification, and trading of synthetic datasets on the Filecoin blockchain. Built at the intersection of Web3 + AI, it provides a secure, transparent, and efficient marketplace for data scientists, researchers, and organizations to monetize and access high-quality synthetic data.
+
+## 🌟 Key Features
+
+### 🔐 **Secure Dataset Management**
+- **Decentralized Storage**: Leverages IPFS and Filecoin for immutable, distributed data storage
+- **Smart Contract Security**: Built on robust Ethereum-compatible smart contracts
+- **Access Control**: Granular permissions and allowlist management
+- **Cryptographic Verification**: End-to-end data integrity verification
+
+### 💰 **Marketplace & Trading**
+- **Dataset Monetization**: Creators can set prices and earn from their synthetic datasets
+- **Secure Payments**: USDFC token-based transactions with protocol fees
+- **Purchase & Access**: Seamless dataset purchasing with instant access grants
+- **Revenue Sharing**: Transparent fee distribution between creators and protocol
+
+### 🤖 **AI-Powered Synthetic Data**
+- **Verifiable LLMs**: Integration with verified Large Language Models
+- **Quality Metrics**: Comprehensive data quality assessment and reporting
+- **Multiple Formats**: Support for various data types and structures
+- **Scalable Generation**: Efficient compute unit management for large datasets
+
+### 📊 **Advanced Analytics**
+- **Marketplace Insights**: Real-time analytics and market trends
+- **Dataset Statistics**: Detailed metrics on usage, downloads, and performance
+- **User Dashboard**: Comprehensive management interface for creators and buyers
+- **Activity Tracking**: Complete audit trail of all platform interactions
+
+## 🏗️ Architecture
+
+### Smart Contracts
+- **Filethetic.sol**: Main marketplace contract handling dataset creation, trading, and access control
+- **FilethethicDatasetNFT.sol**: NFT representation of dataset ownership and access rights
+- **FilethethicVerifier.sol**: Cryptographic verification system for dataset authenticity
+- **MockUSDC.sol**: Test token contract for development and testing
+
+### Frontend Application
+- **Next.js 14**: Modern React framework with App Router
+- **TypeScript**: Type-safe development environment
+- **Wagmi & RainbowKit**: Web3 wallet integration and blockchain interactions
+- **Tailwind CSS & Shadcn/UI**: Beautiful, responsive user interface
+- **Advanced Analytics**: Real-time data visualization and insights
+
+### Storage & Infrastructure
+- **IPFS**: Decentralized file storage for dataset content
+- **Filecoin**: Long-term data persistence and retrieval
+- **FilCDN**: Content delivery network for optimized data access
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm/yarn/pnpm
+- Git
+- MetaMask or compatible Web3 wallet
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-org/filethetic-project.git
+   cd filethetic-project
+   ```
+
+2. **Install dependencies**
+   ```bash
+   # Install contract dependencies
+   cd contracts
+   npm install
+   
+   # Install frontend dependencies
+   cd ../app
+   npm install
+   ```
+
+3. **Environment Setup**
+   ```bash
+   # Copy environment template
+   cp .env.local.example .env.local
+   
+   # Configure your environment variables
+   # Add your RPC URLs, contract addresses, and API keys
+   ```
+
+4. **Deploy Smart Contracts** (Optional - for development)
+   ```bash
+   cd contracts
+   npx hardhat compile
+   npx hardhat run scripts/deploy.js --network localhost
+   ```
+
+5. **Start the Development Server**
+   ```bash
+   cd app
+   npm run dev
+   ```
+
+6. **Access the Application**
+   Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## 📖 Usage Guide
+
+### For Dataset Creators
+
+1. **Connect Your Wallet**
+   - Use MetaMask or any compatible Web3 wallet
+   - Ensure you have sufficient USDFC tokens for transactions
+
+2. **Create a Dataset**
+   - Navigate to the "Create Dataset" section
+   - Fill in dataset metadata (name, description, price)
+   - Configure LLM parameters and compute requirements
+   - Set privacy settings (public/private)
+
+3. **Upload and Lock Dataset**
+   - Upload your dataset to IPFS
+   - Lock the dataset with content hash and metadata
+   - Dataset becomes immutable and tradeable
+
+4. **Manage Your Datasets**
+   - View analytics and download statistics
+   - Update pricing and metadata
+   - Monitor revenue and transactions
+
+### For Dataset Buyers
+
+1. **Browse the Marketplace**
+   - Explore available datasets by category, price, or quality
+   - Use advanced filters and search functionality
+   - Preview dataset samples and statistics
+
+2. **Purchase Datasets**
+   - Select desired datasets
+   - Complete payment using USDFC tokens
+   - Gain immediate access to dataset content
+
+3. **Access Your Datasets**
+   - View purchased datasets in your dashboard
+   - Download data in various formats
+   - Access detailed analytics and insights
+
+## 🛠️ Development
+
+### Project Structure
+```
+filethetic-project/
+├── contracts/                 # Smart contracts
+│   ├── src/                  # Solidity contracts
+│   ├── scripts/              # Deployment scripts
+│   └── artifacts/            # Compiled contracts
+├── app/                      # Frontend application
+│   ├── src/
+│   │   ├── app/             # Next.js app router pages
+│   │   ├── components/      # React components
+│   │   ├── lib/             # Utility functions
+│   │   ├── hooks/           # Custom React hooks
+│   │   └── types/           # TypeScript definitions
+│   └── public/              # Static assets
+└── README.md
+```
+
+### Available Scripts
+
+**Frontend (app/)**
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run format       # Format code with Prettier
+```
+
+**Smart Contracts (contracts/)**
+```bash
+npx hardhat compile  # Compile contracts
+npx hardhat test     # Run tests
+npx hardhat deploy   # Deploy contracts
+```
+
+### Environment Variables
+
+Create `.env.local` in the app directory:
+```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_CHAIN_ID=31337
+NEXT_PUBLIC_RPC_URL=http://localhost:8545
+NEXT_PUBLIC_FILETHETIC_CONTRACT=0x...
+NEXT_PUBLIC_DATASET_NFT_CONTRACT=0x...
+NEXT_PUBLIC_VERIFIER_CONTRACT=0x...
+NEXT_PUBLIC_USDC_CONTRACT=0x...
+```
+
+## 🧪 Testing
+
+### Smart Contract Tests
+```bash
+cd contracts
+npx hardhat test
+```
+
+### Frontend Tests
+```bash
+cd app
+npm run test
+```
+
+## 🚀 Deployment
+
+### Smart Contracts
+1. Configure network settings in `hardhat.config.js`
+2. Deploy contracts: `npx hardhat run scripts/deploy.js --network <network>`
+3. Verify contracts on block explorer
+
+### Frontend Application
+1. Build the application: `npm run build`
+2. Deploy to Vercel, Netlify, or your preferred hosting platform
+3. Configure environment variables in production
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+### Development Guidelines
+- Follow TypeScript best practices
+- Write comprehensive tests for new features
+- Ensure code passes linting and formatting checks
+- Update documentation for significant changes
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **Demo**: [https://filethetic.vercel.app/](https://filethetic.vercel.app/)
+- **Documentation**: [Coming Soon]
+- **Discord**: [Join our community]
+- **Twitter**: [@filethetic]
+
+## 🙏 Acknowledgments
+
+- **Filecoin Foundation** for blockchain infrastructure
+- **OpenZeppelin** for secure smart contract libraries
+- **Next.js Team** for the amazing React framework
+- **Wagmi & RainbowKit** for Web3 integration tools
+
+## 📞 Support
+
+For support, questions, or feedback:
+- Email: contact@filethetic.xyz
+- GitHub Issues: [Create an issue](https://github.com/your-org/filethetic-project/issues)
+- Discord: [Join our server]
+
+---
+
+**Built with ❤️ by the Filethetic Team**
 
 Filethetic is a decentralized marketplace for synthetic datasets, built on Filecoin and Ethereum. It enables users to generate, verify, and trade AI-generated datasets with on-chain verification.
 

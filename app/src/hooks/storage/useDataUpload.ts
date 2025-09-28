@@ -8,13 +8,14 @@ import { useConfetti } from "@/hooks/storage/useConfetti";
 import { useAccount } from "wagmi";
 import { useNetwork } from "@/hooks/storage/useNetwork";
 import { preflightCheck } from "@/utils/preflightCheck";
-import { getProofset } from "@/utils/getProofset";
+import { getDataset } from "@/utils/getDataset";
 import { config } from "@/config/storageConfig";
 
 export type UploadedInfo = {
   fileName?: string;
   fileSize?: number;
   commp?: string;
+  cid?: string;
   txHash?: string;
 };
 
@@ -51,7 +52,7 @@ export const useDataUpload = () => {
         withCDN: config.withCDN,
       });
 
-      const { providerId } = await getProofset(signer, network, address);
+      const { providerId } = await getDataset(synapse, address);
       const withProofset = !!providerId;
 
       setStatus("💰 Checking USDFC balance and storage allowances...");
@@ -59,7 +60,6 @@ export const useDataUpload = () => {
       await preflightCheck(
         file,
         synapse,
-        network,
         withProofset,
         setStatus,
         setProgress
@@ -69,33 +69,32 @@ export const useDataUpload = () => {
       setProgress(25);
 
       const storageService = await synapse.createStorage({
-        providerId,
         callbacks: {
-          onProofSetResolved: (info) => {
-            console.log("Proof set resolved:", info);
-            setStatus("🔗 Existing proof set found and resolved");
+          onDataSetResolved: (info: any) => {
+            console.log("Dataset resolved:", info);
+            setStatus("🔗 Existing dataset found and resolved");
             setProgress(30);
           },
-          onProofSetCreationStarted: (transactionResponse, statusUrl) => {
-            console.log("Proof set creation started:", transactionResponse);
-            console.log("Proof set creation status URL:", statusUrl);
-            setStatus("🏗️ Creating new proof set on blockchain...");
+          onDataSetCreationStarted: (transactionResponse: any, statusUrl: any) => {
+            console.log("Dataset creation started:", transactionResponse);
+            console.log("Dataset creation status URL:", statusUrl);
+            setStatus("🏗️ Creating new dataset on blockchain...");
             setProgress(35);
           },
-          onProofSetCreationProgress: (status) => {
-            console.log("Proof set creation progress:", status);
+          onDataSetCreationProgress: (status: any) => {
+            console.log("Dataset creation progress:", status);
             if (status.transactionSuccess) {
-              setStatus(`⛓️ Proof set transaction confirmed on chain`);
+              setStatus(`⛓️ Dataset transaction confirmed on chain`);
               setProgress(45);
             }
             if (status.serverConfirmed) {
               setStatus(
-                `🎉 Proof set ready! (${Math.round(status.elapsedMs / 1000)}s)`
+                `🎉 Dataset ready! (${Math.round(status.elapsedMs / 1000)}s)`
               );
               setProgress(50);
             }
           },
-          onProviderSelected: (provider) => {
+          onProviderSelected: (provider: any) => {
             console.log("Storage provider selected:", provider);
             setStatus(`🏪 Storage provider selected`);
           },
@@ -104,19 +103,20 @@ export const useDataUpload = () => {
 
       setStatus("📁 Uploading data to storage provider...");
       setProgress(55);
-      const { commp } = await storageService.upload(uint8ArrayBytes, {
-        onUploadComplete: (commp) => {
+      const { pieceCid } = await storageService.upload(uint8ArrayBytes, {
+        onUploadComplete: (piece: any) => {
           setStatus(
-            `📊 Data uploaded! Signing msg to add roots to the proof set`
+            `📊 Data uploaded! Signing msg to add pieces to the dataset`
           );
           setUploadedInfo((prev) => ({
             ...prev,
+            fileName: file.name,
             fileSize: file.size,
-            commp: commp.toString(),
+            cid: piece.toV1().toString(),
           }));
           setProgress(80);
         },
-        onRootAdded: async (transactionResponse) => {
+        onPieceAdded: async (transactionResponse: any) => {
           setStatus(
             `🔄 Waiting for transaction to be confirmed on chain${
               transactionResponse ? `(txHash: ${transactionResponse.hash})` : ""
@@ -133,8 +133,8 @@ export const useDataUpload = () => {
           setStatus(`🔄 Waiting for storage provider confirmation`);
           setProgress(85);
         },
-        onRootConfirmed: (rootIds) => {
-          setStatus("🌳 Data roots added to proof set successfully");
+        onPieceConfirmed: (pieceIds: any) => {
+          setStatus("🌳 Data pieces added to dataset successfully");
           setProgress(90);
         },
       });
@@ -147,7 +147,7 @@ export const useDataUpload = () => {
       setUploadedInfo((prev) => ({
         ...prev,
         fileSize: file.size,
-        commp: commp.toString(),
+        cid: pieceCid.toString(),
       }));
     },
     onSuccess: () => {

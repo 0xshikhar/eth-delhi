@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { ConfettiContext } from "@/config/ConfettiProvider";
+import { ConfettiContext } from "@/providers/ConfettiProvider";
 
 export const useConfetti = () => {
   const context = useContext(ConfettiContext);

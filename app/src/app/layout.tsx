@@ -6,7 +6,7 @@ import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "@/app/providers"
-import { ConfettiProvider } from "@/config/ConfettiProvider";
+import { ConfettiProvider } from "@/providers/ConfettiProvider";
 
 const inter = Inter({ subsets: ["latin"] })
 

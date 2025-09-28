@@ -277,3 +277,22 @@ export interface AllowanceItemProps {
   isSufficient?: boolean;
   isLoading?: boolean;
 }
+
+// WarmStorage types
+export interface WarmStorageBalance {
+  costs: {
+    perEpoch: bigint;
+  };
+  currentRateUsed: bigint;
+  currentRateAllowance: bigint;
+  currentLockupAllowance: bigint;
+  currentLockupUsed: bigint;
+  rateAllowanceNeeded: bigint;
+  lockupAllowanceNeeded: bigint;
+  depositAmountNeeded: bigint;
+}
+
+export interface StorageCosts {
+  pricePerTiBPerMonthNoCDN: bigint;
+  pricePerTiBPerMonthWithCDN: bigint;
+}
