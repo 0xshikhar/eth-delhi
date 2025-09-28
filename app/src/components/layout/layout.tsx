@@ -27,7 +27,7 @@ export function Layout({ children }: LayoutProps) {
                 &copy; {new Date().getFullYear()} Filethetic - Decentralized Synthetic Data Platform
               </p>
               <p className="text-sm text-muted-foreground">
-                Built with ❤️ on Filecoin with FilCDN & USDFC
+                Built with ❤️ on Filecoin
               </p>
             </div>
           </footer>

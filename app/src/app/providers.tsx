@@ -13,6 +13,7 @@ import {
     QueryClientProvider,
     QueryClient,
 } from "@tanstack/react-query";
+import { SynapseProvider } from '@/providers/SynapseProvider';
 import 'dotenv/config'
 
 import {
@@ -60,15 +61,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
-                {mounted ? (
-                    <RainbowKitProvider appInfo={demoAppInfo}>
-                        {children}
-                    </RainbowKitProvider>
-                ) : (
-                    <div style={{ visibility: "hidden" }}>
-                        {children}
-                    </div>
-                )}
+                <SynapseProvider>
+                    {mounted ? (
+                        <RainbowKitProvider appInfo={demoAppInfo}>
+                            {children}
+                        </RainbowKitProvider>
+                    ) : (
+                        <div style={{ visibility: "hidden" }}>
+                            {children}
+                        </div>
+                    )}
+                </SynapseProvider>
             </QueryClientProvider>
         </WagmiProvider>
     );

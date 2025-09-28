@@ -106,30 +106,13 @@ Filethetic is the **decentralized marketplace for verified synthetic datasets**,
 - 🎯 $5M in transaction volume
 - 🎯 Enterprise partnerships with 10 Fortune 500 companies
 
-## 👥 Team
-
-### Core Team
-- **Technical Expertise**: 15+ years combined blockchain development
-- **Domain Knowledge**: Former data scientists from Google, Meta, OpenAI
-- **Business Acumen**: Ex-startup founders with successful exits
-- **Academic Backing**: Advisors from Stanford, MIT, Berkeley
-
-### Advisory Board
-- **Blockchain Experts**: Filecoin Foundation members
-- **AI Researchers**: Leading ML practitioners
-- **Business Leaders**: Former executives from data companies
-
 ## 💰 Funding & Use of Funds
 
-### Current Round: $2M Seed
+###  Round: $2M Seed
 - **Product Development** (40%): Enhanced features, mobile app
 - **Team Expansion** (30%): Hire 8 engineers and 2 business developers
 - **Marketing & Growth** (20%): User acquisition, partnerships
 - **Operations** (10%): Legal, compliance, infrastructure
-
-### Future Rounds
-- **Series A** ($8M): Scale to 50K users, international expansion
-- **Series B** ($20M): Enterprise features, AI model marketplace
 
 ## 🌍 Market Opportunity
 

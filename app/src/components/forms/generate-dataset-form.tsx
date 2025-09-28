@@ -188,14 +188,30 @@ export function GenerateDatasetForm() {
   }, [watchAiProvider]);
 
   useEffect(() => {
+    console.log('🔄 [GenerateDatasetForm] Checking upload transition:', {
+      hasGeneratedData: !!generatedData,
+      isUploading,
+      hasUploadedInfo: !!uploadedInfo,
+      currentStep
+    });
+
     if (generatedData && !isUploading && !uploadedInfo && currentStep === 'generating') {
+      console.log('📤 [GenerateDatasetForm] Transitioning to uploading step');
       setCurrentStep('uploading');
       uploadGeneratedData();
     }
   }, [generatedData, isUploading, uploadedInfo, currentStep]);
 
   useEffect(() => {
+    console.log('🔄 [GenerateDatasetForm] Checking publishing transition:', {
+      hasUploadedInfo: !!uploadedInfo,
+      uploadedInfo,
+      isPublishing,
+      currentStep
+    });
+
     if (uploadedInfo && !isPublishing && currentStep === 'uploading') {
+      console.log('🚀 [GenerateDatasetForm] Transitioning to publishing step');
       setCurrentStep('publishing');
       publishDataset();
     }
@@ -273,11 +289,26 @@ export function GenerateDatasetForm() {
   };
 
   const publishDataset = async () => {
-    if (!uploadedInfo || !generatedData) return;
+    console.log('🎯 [GenerateDatasetForm] publishDataset called with:', {
+      hasUploadedInfo: !!uploadedInfo,
+      hasGeneratedData: !!generatedData,
+      uploadedInfo,
+      generatedDataLength: generatedData?.length
+    });
+
+    if (!uploadedInfo || !generatedData) {
+      console.error('❌ [GenerateDatasetForm] Missing required data for publishing:', {
+        uploadedInfo,
+        generatedData
+      });
+      return;
+    }
 
     try {
       const values = form.getValues();
-      await publish({
+      console.log('📋 [GenerateDatasetForm] Form values for publishing:', values);
+
+      const publishProps = {
         name: values.name,
         description: values.description,
         price: values.price,
@@ -286,12 +317,17 @@ export function GenerateDatasetForm() {
         generatedData: [{ data: generatedData, metadata: {} }] as any,
         commp: uploadedInfo.commp || '',
         onSuccess: () => {
+          console.log('🎉 [GenerateDatasetForm] Publishing onSuccess callback triggered');
           setCurrentStep('completed');
           toast.success('Dataset published successfully!');
         }
-      });
+      };
+
+      console.log('🚀 [GenerateDatasetForm] Calling publish with props:', publishProps);
+      await publish(publishProps);
+      console.log('✅ [GenerateDatasetForm] publish call completed');
     } catch (error) {
-      console.error('Publishing failed:', error);
+      console.error('💥 [GenerateDatasetForm] Publishing failed:', error);
       setProcessError('Failed to publish dataset');
       setCurrentStep('error');
       toast.error('Failed to publish dataset');

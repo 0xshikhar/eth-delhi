@@ -23,7 +23,21 @@ export function useDatasetPublisher() {
   const [isPublishing, setIsPublishing] = useState(false);
 
   const publish = async (props: UseDatasetPublisherProps) => {
+    console.log('🚀 [useDatasetPublisher] Starting publish process with props:', {
+      hasCommp: !!props.commp,
+      hasAddress: !!address,
+      hasGeneratedData: !!props.generatedData,
+      commp: props.commp,
+      address,
+      generatedDataLength: props.generatedData?.length
+    });
+
     if (!props.commp || !address || !props.generatedData) {
+      console.error('❌ [useDatasetPublisher] Missing required data:', {
+        commp: props.commp,
+        address,
+        generatedData: props.generatedData
+      });
       return;
     }
 
@@ -34,7 +48,7 @@ export function useDatasetPublisher() {
       const priceInWei = ethers.parseUnits(props.price, 6).toString();
       
       // Debug logs to track parameters
-      console.log('Publishing dataset with parameters:', {
+      console.log('📊 [useDatasetPublisher] Publishing dataset with parameters:', {
         name: props.name,
         description: props.description,
         price: priceInWei,
@@ -46,6 +60,7 @@ export function useDatasetPublisher() {
         maxComputeUnits: 1000000
       });
 
+      console.log('🔗 [useDatasetPublisher] Calling createDataset...');
       const { datasetId } = await createDataset(
         props.name,
         props.description,
@@ -58,26 +73,56 @@ export function useDatasetPublisher() {
         1000000 // maxComputeUnits (default)
       );
 
+      console.log('✅ [useDatasetPublisher] createDataset completed with datasetId:', datasetId);
+
       if (datasetId) {
         toast.info(`Dataset created with ID: ${datasetId}. Locking with Filecoin CommP...`);
-        const totalTokens = props.generatedData.reduce((acc, item) => acc + item.usage.totalTokens, 0);
+        
+        console.log('🔍 [useDatasetPublisher] Analyzing generatedData structure:', {
+          generatedDataLength: props.generatedData?.length,
+          firstItem: props.generatedData?.[0],
+          hasUsage: props.generatedData?.[0]?.usage,
+          usageStructure: props.generatedData?.[0]?.usage
+        });
+        
+        const totalTokens = props.generatedData?.reduce((acc, item) => {
+          const tokens = item?.usage?.totalTokens || 0;
+          console.log('🔢 [useDatasetPublisher] Processing item tokens:', { item: item?.input, tokens });
+          return acc + tokens;
+        }, 0) || 0;
+        
+        console.log('🔒 [useDatasetPublisher] Calling lockDataset with:', {
+          datasetId,
+          commp: props.commp,
+          dataLength: props.generatedData?.length || 0,
+          totalTokens
+        });
+
         await lockDataset(
           datasetId,
           props.commp,
-          props.generatedData.length,
+          props.generatedData?.length || 0,
           totalTokens
         );
+
+        console.log('🎉 [useDatasetPublisher] lockDataset completed successfully');
         toast.success('Dataset published and locked successfully!');
+        
         if (props.onSuccess) {
+          console.log('🎯 [useDatasetPublisher] Calling onSuccess callback');
           props.onSuccess();
+        } else {
+          console.log('⚠️ [useDatasetPublisher] No onSuccess callback provided');
         }
       } else {
+        console.error('❌ [useDatasetPublisher] createDataset returned no datasetId');
         throw new Error("Failed to create dataset on-chain.");
       }
     } catch (error) {
-      console.error('Error publishing dataset:', error);
+      console.error('💥 [useDatasetPublisher] Error publishing dataset:', error);
       toast.error(`Failed to publish dataset: ${(error as Error).message}`);
     } finally {
+      console.log('🏁 [useDatasetPublisher] Publishing process finished, setting isPublishing to false');
       setIsPublishing(false);
     }
   };

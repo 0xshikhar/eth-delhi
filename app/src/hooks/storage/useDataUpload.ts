@@ -7,6 +7,7 @@ import { useEthersSigner } from "@/hooks/storage/useEthers";
 import { useConfetti } from "@/hooks/storage/useConfetti";
 import { useAccount } from "wagmi";
 import { useNetwork } from "@/hooks/storage/useNetwork";
+import { useSynapse } from "@/providers/SynapseProvider";
 import { preflightCheck } from "@/utils/preflightCheck";
 import { getDataset } from "@/utils/getDataset";
 import { config } from "@/config/storageConfig";
@@ -16,7 +17,9 @@ export type UploadedInfo = {
   fileSize?: number;
   commp?: string;
   cid?: string;
+  pieceCid?: string;
   txHash?: string;
+  transactionHash?: string;
 };
 
 /**
@@ -28,13 +31,23 @@ export const useDataUpload = () => {
   const [uploadedInfo, setUploadedInfo] = useState<UploadedInfo | null>(null);
 
   const signer = useEthersSigner();
+  const { synapse } = useSynapse();
   const { triggerConfetti  } = useConfetti();
   const { address, chainId } = useAccount();
   const { data: network } = useNetwork();
   const mutation = useMutation({
     mutationKey: ["data-upload", address, chainId],
     mutationFn: async (data: any) => {
-      if (!signer) throw new Error("Signer not found");
+      console.log('🚀 [useDataUpload] Starting upload process with data:', {
+        dataType: typeof data,
+        dataLength: Array.isArray(data) ? data.length : 'N/A',
+        dataSize: JSON.stringify(data).length,
+        address,
+        chainId,
+        networkType: network
+      });
+
+      if (!synapse) throw new Error("Synapse not found");
       if (!address) throw new Error("Address not found");
       if (!chainId) throw new Error("Chain ID not found");
       if (!network) throw new Error("Network not found");
@@ -42,113 +55,190 @@ export const useDataUpload = () => {
       setUploadedInfo(null);
       setStatus("🔄 Initializing data upload to Filecoin...");
 
+      console.log('📁 [useDataUpload] Creating File object from data');
       const file = new File([JSON.stringify(data, null, 2)], "dataset.json", { type: 'application/json' });
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8ArrayBytes = new Uint8Array(arrayBuffer);
-
-      const synapse = await Synapse.create({
-        provider: signer.provider as any,
-        disableNonceManager: false,
-        withCDN: config.withCDN,
+      console.log('📁 [useDataUpload] File created:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
       });
 
-      const { providerId } = await getDataset(synapse, address);
-      const withProofset = !!providerId;
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8ArrayBytes = new Uint8Array(arrayBuffer);
+      console.log('🔄 [useDataUpload] File converted to bytes:', {
+        arrayBufferSize: arrayBuffer.byteLength,
+        uint8ArraySize: uint8ArrayBytes.length
+      });
 
+      // Use the shared synapse instance instead of creating a new one
+      console.log('🔍 [useDataUpload] Finding existing datasets for address:', address);
+      const datasets = await synapse.storage.findDataSets(address);
+      const datasetExists = datasets.length > 0;
+      const includeDatasetCreationFee = !datasetExists;
+      console.log('📊 [useDataUpload] Dataset check result:', {
+        existingDatasets: datasets.length,
+        datasetExists,
+        includeDatasetCreationFee
+      });
+
+      console.log('💰 [useDataUpload] Starting preflight check');
       setStatus("💰 Checking USDFC balance and storage allowances...");
       setProgress(5);
       await preflightCheck(
         file,
         synapse,
-        withProofset,
+        includeDatasetCreationFee,
         setStatus,
         setProgress
       );
+      console.log('✅ [useDataUpload] Preflight check completed');
 
-      setStatus("🔗 Setting up storage service and proof set...");
+      console.log('🔗 [useDataUpload] Setting up storage service and dataset');
+      setStatus("🔗 Setting up storage service and dataset...");
       setProgress(25);
 
-      const storageService = await synapse.createStorage({
-        callbacks: {
-          onDataSetResolved: (info: any) => {
-            console.log("Dataset resolved:", info);
-            setStatus("🔗 Existing dataset found and resolved");
-            setProgress(30);
-          },
-          onDataSetCreationStarted: (transactionResponse: any, statusUrl: any) => {
-            console.log("Dataset creation started:", transactionResponse);
-            console.log("Dataset creation status URL:", statusUrl);
-            setStatus("🏗️ Creating new dataset on blockchain...");
-            setProgress(35);
-          },
-          onDataSetCreationProgress: (status: any) => {
-            console.log("Dataset creation progress:", status);
-            if (status.transactionSuccess) {
-              setStatus(`⛓️ Dataset transaction confirmed on chain`);
-              setProgress(45);
-            }
-            if (status.serverConfirmed) {
-              setStatus(
-                `🎉 Dataset ready! (${Math.round(status.elapsedMs / 1000)}s)`
-              );
-              setProgress(50);
-            }
-          },
-          onProviderSelected: (provider: any) => {
-            console.log("Storage provider selected:", provider);
-            setStatus(`🏪 Storage provider selected`);
-          },
-        },
-      });
+      let storageService;
+      let usingCDN = false;
 
-      setStatus("📁 Uploading data to storage provider...");
+      try {
+        // First attempt: Try with CDN if enabled
+        if (config.withCDN) {
+          console.log('🌐 [useDataUpload] Attempting to use CDN-enabled storage');
+          setStatus("🌐 Attempting to use CDN-enabled storage...");
+          storageService = await synapse.createStorage({
+            callbacks: {
+              onDataSetResolved: (info: any) => {
+                console.log("📋 [useDataUpload] Dataset resolved:", info);
+                setStatus("🔗 Existing dataset found and resolved");
+                setProgress(30);
+              },
+              onDataSetCreationStarted: (transactionResponse: any, statusUrl: any) => {
+                console.log("🏗️ [useDataUpload] Dataset creation started:", transactionResponse);
+                console.log("📊 [useDataUpload] Dataset creation status URL:", statusUrl);
+                setStatus("🏗️ Creating new dataset on blockchain...");
+                setProgress(35);
+              },
+              onDataSetCreationProgress: (status: any) => {
+                console.log("📊 [useDataUpload] Dataset creation progress:", status);
+                if (status.transactionSuccess) {
+                  setStatus(`⛓️ Dataset transaction confirmed on chain`);
+                  setProgress(45);
+                }
+                if (status.serverConfirmed) {
+                  setStatus(
+                    `🎉 Dataset ready! (${Math.round(status.elapsedMs / 1000)}s)`
+                  );
+                  setProgress(50);
+                }
+              },
+              onProviderSelected: (provider: any) => {
+                console.log("🌐 [useDataUpload] CDN-enabled storage provider selected:", provider);
+                setStatus(`🌐 CDN-enabled storage provider selected`);
+              },
+            },
+          });
+          usingCDN = true;
+          console.log('✅ [useDataUpload] Successfully configured CDN-enabled storage');
+        } else {
+          throw new Error('CDN disabled, using fallback');
+        }
+      } catch (cdnError) {
+        console.warn('⚠️ [useDataUpload] CDN storage failed, falling back to standard storage:', cdnError);
+        
+        // Fallback: Try without CDN
+        setStatus("🔄 CDN unavailable, using standard storage...");
+        setProgress(20);
+        
+        storageService = await synapse.createStorage({
+          callbacks: {
+            onDataSetResolved: (info: any) => {
+              console.log("📋 [useDataUpload] Dataset resolved:", info);
+              setStatus("🔗 Existing dataset found and resolved");
+              setProgress(30);
+            },
+            onDataSetCreationStarted: (transactionResponse: any, statusUrl: any) => {
+              console.log("🏗️ [useDataUpload] Dataset creation started:", transactionResponse);
+              console.log("📊 [useDataUpload] Dataset creation status URL:", statusUrl);
+              setStatus("🏗️ Creating new dataset on blockchain...");
+              setProgress(35);
+            },
+            onDataSetCreationProgress: (status: any) => {
+              console.log("📊 [useDataUpload] Dataset creation progress:", status);
+              if (status.transactionSuccess) {
+                setStatus(`⛓️ Dataset transaction confirmed on chain`);
+                setProgress(45);
+              }
+              if (status.serverConfirmed) {
+                setStatus(
+                  `🎉 Dataset ready! (${Math.round(status.elapsedMs / 1000)}s)`
+                );
+                setProgress(50);
+              }
+            },
+            onProviderSelected: (provider: any) => {
+              console.log("🏪 [useDataUpload] Standard storage provider selected:", provider);
+              setStatus(`🏪 Standard storage provider selected`);
+            },
+          },
+        });
+        usingCDN = false;
+        console.log('✅ [useDataUpload] Successfully configured standard storage');
+      }
+
+      console.log('📤 [useDataUpload] Starting file upload');
+      setStatus("📤 Uploading file to Filecoin...");
       setProgress(55);
-      const { pieceCid } = await storageService.upload(uint8ArrayBytes, {
+
+      const uploadResult = await storageService.upload(uint8ArrayBytes, {
         onUploadComplete: (piece: any) => {
-          setStatus(
-            `📊 Data uploaded! Signing msg to add pieces to the dataset`
-          );
-          setUploadedInfo((prev) => ({
-            ...prev,
+          console.log('✅ [useDataUpload] Upload completed:', piece);
+          setStatus("✅ Upload completed successfully!");
+          setProgress(80);
+          setUploadedInfo({
             fileName: file.name,
             fileSize: file.size,
+            pieceCid: piece.toV1().toString(),
             cid: piece.toV1().toString(),
-          }));
-          setProgress(80);
+            commp: piece.toV1().toString(), // Use pieceCid as commp
+            txHash: undefined, // Will be set in onPieceAdded
+          });
         },
-        onPieceAdded: async (transactionResponse: any) => {
-          setStatus(
-            `🔄 Waiting for transaction to be confirmed on chain${
-              transactionResponse ? `(txHash: ${transactionResponse.hash})` : ""
-            }`
-          );
+        onPieceAdded: (transactionResponse?: any) => {
+          console.log('🧩 [useDataUpload] Piece added with transaction:', transactionResponse);
+          setStatus("🧩 File piece added to storage network");
+          setProgress(90);
           if (transactionResponse) {
-            const receipt = await transactionResponse.wait();
-            console.log("Receipt:", receipt);
             setUploadedInfo((prev) => ({
               ...prev,
               txHash: transactionResponse?.hash,
             }));
           }
-          setStatus(`🔄 Waiting for storage provider confirmation`);
-          setProgress(85);
         },
-        onPieceConfirmed: (pieceIds: any) => {
-          setStatus("🌳 Data pieces added to dataset successfully");
-          setProgress(90);
+        onPieceConfirmed: (pieceIds: number[]) => {
+          console.log('✅ [useDataUpload] Piece confirmed with IDs:', pieceIds);
+          setStatus("✅ File piece confirmed on network");
+          setProgress(95);
         },
       });
 
-      if (!uploadedInfo?.txHash) {
-        await new Promise((resolve) => setTimeout(resolve, 50000));
-      }
+      console.log('🎉 [useDataUpload] Upload process completed successfully:', {
+        uploadResult,
+        usingCDN,
+        finalStatus: 'success'
+      });
 
-      setProgress(95);
+      // Final update with pieceCid from uploadResult
+      setProgress(100);
       setUploadedInfo((prev) => ({
         ...prev,
+        fileName: file.name,
         fileSize: file.size,
-        cid: pieceCid.toString(),
+        pieceCid: uploadResult.pieceCid.toV1().toString(),
+        cid: uploadResult.pieceCid.toV1().toString(),
+        commp: uploadResult.pieceCid.toV1().toString(), // Use pieceCid as commp
       }));
+      
+      console.log('🎉 [useDataUpload] Upload mutation completed successfully');
     },
     onSuccess: () => {
       setStatus("🎉 Data successfully stored on Filecoin!");

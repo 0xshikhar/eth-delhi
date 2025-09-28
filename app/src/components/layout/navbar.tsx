@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 // import { WalletConnect } from "@/components/ui/wallet-connect";
-import { Database, Home, Plus, ShoppingBag, Shield, User, BarChart3, Code, ChevronDown } from "lucide-react";
+import { Database, Home, Plus, ShoppingBag, Shield, User, BarChart3, Code, ChevronDown, Bug } from "lucide-react";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
@@ -59,6 +59,11 @@ const dropdownItems = [
     name: "Contract Data",
     href: "/smart-contracts",
     icon: Code,
+  },
+  {
+    name: "Debug Tools",
+    href: "/debug",
+    icon: Bug,
   },
 ];
 
