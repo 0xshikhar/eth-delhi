@@ -4,6 +4,36 @@
 
 Filethetic is enables the creation, verification, and trading of synthetic datasets on the Filecoin blockchain. Built at the intersection of Web3 + AI, it provides a secure, transparent, and efficient marketplace for data scientists, researchers, and organizations to monetize and access high-quality synthetic data.
 
+## How to Test the Project
+
+1.  **Navigate to the MVP URL**:
+    -   Go to our MVP deployment: [`https://filethetic-app.vercel.app/profile`](https://filethetic-app.vercel.app/profile)
+
+2.  **Connect Your Wallet**:
+    -   If not already connected, connect your Web3 wallet (e.g., MetaMask).
+
+3.  **Get Test Tokens**:
+    -   Go to the **Storage** section.
+    -   Get **tFIL** tokens for gas fees on the Filecoin Calibration testnet from the official faucet: [`https://faucet.calibnet.chainsafe-fil.io/funds.html`](https://faucet.calibnet.chainsafe-fil.io/funds.html)
+    -   Mint **USDFC** tokens for buying datasets.
+
+4.  **Create & List a Dataset (Optional)**:
+    -   If you want to create your own dataset, apply for storage in the **/profile** storage section.
+
+5.  **Explore the Marketplace**:
+    -   Go to the **/marketplace** to browse and buy existing datasets.
+    -   Go to the **/generate** page to create new synthetic data.
+
+## Contracts
+
+### Filecoin Calibration Testnet
+
+| Contract                | Address                                      |
+| ----------------------- | -------------------------------------------- |
+| `Filethetic`            | `0x3794742c86B4D659cb5971aC609bFc5504B635dC` |
+| `FilethethicDatasetNFT` | `0x12671a8Cd1C9fEad0D698C27Eccda40Cc140F223` |
+| `FilethethicVerifier`   | `0x7cA80353c56CeBc0BaA14e1aEbFE976edAD8185e` |
+
 ## 🌟 Key Features
 
 ### 🔐 **Secure Dataset Management**
