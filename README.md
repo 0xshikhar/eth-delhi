@@ -4,6 +4,14 @@
 
 Filethetic is enables the creation, verification, and trading of synthetic datasets on the Filecoin blockchain. Built at the intersection of Web3 + AI, it provides a secure, transparent, and efficient marketplace for data scientists, researchers, and organizations to monetize and access high-quality synthetic data.
 
+## How to test the project 
+
+- Goto to our mvp url - https://filethetic-app.vercel.app/profile
+- Connect the wallet if not connected
+- Goto Storage section, get tFil tokens(for gas on filecoin testnet - https://faucet.calibnet.chainsafe-fil.io/funds.html) and USDFC tokens(for buying dataset)
+- in case user wants to create their own dataset and list it on marketplace, apply for storage on /profile storage section.
+- Now you can go to /marketplace to buy datasets or can go to /generate page to create synthetic data
+
 ## 🌟 Key Features
 
 ### 🔐 **Secure Dataset Management**
